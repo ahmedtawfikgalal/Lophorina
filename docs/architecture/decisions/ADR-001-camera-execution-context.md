@@ -36,7 +36,7 @@ Manual run 1 (2026-10-12, [week-1-spike.md](../../delivery/week-1-spike.md)):
 
 - Camera host: **Side Panel**.
 - Frame loop: **worker + MediaStreamTrackProcessor** (main-thread requestVideoFrameCallback also worked; the worker keeps the UI thread free).
-- Delegate: **GPU** (5–6× faster than CPU). Fall back to CPU if GPU initialization fails. To be implemented in Week 2.
+- Delegate: **GPU** (5–6× faster than CPU). Fall back to CPU if GPU initialization fails or the GPU is unusably slow after start (Week 2: median inference > 150 ms after warm-up, or no results within 8 s).
 - Onboarding must include the one-time camera permission page.
 - The offscreen-document fallback is not needed.
 

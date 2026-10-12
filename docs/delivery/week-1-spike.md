@@ -151,7 +151,7 @@ Conclusions:
 4. **Swipes often end with the hand leaving the frame**, so tracking is lost at the end of the motion.
 5. **Combined recording** (`full-2-minutes`, 110 s, labeled in `tests/replay/manifest.json`):
    - Between palm holds the hand stayed in view, so the model saw one continuous open palm for about 22 s. Release detection must not depend on the hand disappearing (ADR-003, re-arm).
-   - The wrist sat at the bottom edge of the frame. Onboarding should show a "keep your hand here" area; framing likely contributes to the low palm scores.
+   - The hand was close to the camera (40–70 % of frame height) and the wrist was at the bottom edge in about a quarter of palm-hold frames. **Corrected in Week 2:** framing does not explain the low palm scores (median 0.60 with the wrist at the edge vs 0.59 without). A "keep your hand here" guide is still useful so the hand isn't lost mid-gesture.
    - **Wind-ups:** quick moves the opposite way often came just before a swipe. ADR-003 now also covers motion _before_ a swipe.
    - Only about 6 of about 10 right swipes reach 25 % of the frame in 500 ms, and the classifier often reports `None` mid-swipe. Swipe detection must use landmarks, and the distance threshold may be too strict.
    - **The normal-activity part contained 8 natural closed fists** (score median 0.91). Fist must never be mapped to a command.

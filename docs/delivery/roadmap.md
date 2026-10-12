@@ -25,6 +25,19 @@ Goal: prove the riskiest assumptions in the real extension environment. Runbook 
 `CameraManager`, `FrameScheduler`, `GestureRecognizer`, normalized `GestureObservation`, lifecycle state machine, permission/error states, live preview and status.
 **Gate:** repeatable sessions with no camera left active after stop.
 
+Status (2026-10-12): implemented; manual check pending.
+
+| Item                                                                                                                                                                                          | Where                                    |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| GPU → CPU fallback when the GPU fails to initialize **or** runs unusably slow (median > 150 ms after warm-up, or no results within 8 s); the camera stays on and a notice explains the switch | `camera-session.ts`                      |
+| Camera disconnect / taken by another app → `ERROR` with "Try again"                                                                                                                           | `camera-session.ts`                      |
+| Permission onboarding: the panel detects missing camera access and offers the one-time grant tab before Start; the message clears itself once access is granted                               | `App.tsx`, `camera-manager.ts`           |
+| Hand guide: mirrored preview with a "keep your hand here" area, landmark overlay, and placement hints                                                                                         | `CameraPreview.tsx`, `hand-placement.ts` |
+| Panel layout: status + control, camera card, Week 1 tools moved into a collapsible Diagnostics section                                                                                        | `App.tsx`, `Diagnostics.tsx`             |
+| `CameraSession` injectable and unit-tested (permission, fallbacks, disconnect, stop during load)                                                                                              | `tests/unit/camera-session.test.ts`      |
+
+Found while building: on a software renderer the GPU delegate initializes fine but takes ~5 s per frame (seen in the headless smoke test), which is why the fallback also checks speed.
+
 ## Week 3 — Interaction engine
 
 `GestureStateMachine`, swipe detector with return-stroke suppression and stillness rule, mapping engine, unit + replay tests, replay dataset complete.
