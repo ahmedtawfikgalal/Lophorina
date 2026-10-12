@@ -72,6 +72,8 @@ Status (2026-10-12): automated checks done, plus gesture settings (on/off per ge
 Production build tests, onboarding, privacy notice, troubleshooting guide, T9 pilot, release notes, version tag; Web Store submission or private unpacked pilot.
 **Gate:** a new user installs, activates, controls, and stops without help.
 
+Status (2026-10-12): release prepared: store build (no developer tools), icons, "How to use" card, `npm run package`, privacy page (`docs/privacy.html` via GitHub Pages), listing texts and steps in [release/chrome-web-store.md](release/chrome-web-store.md). Publishing **Unlisted** first; Public after the 30-minute test and pilot feedback.
+
 ## Next release (not in the 6 weeks)
 
 Google Slides adapter (new ADR), calibration, configurable mappings, dark mode. OS-wide control is a separate project.

@@ -2,8 +2,14 @@
   "manifest_version": 3,
   "name": "Lophorina",
   "version": "0.1.0",
-  "description": "Hands-free YouTube control with on-device gesture recognition. Week 1 technical spike build.",
+  "description": "Control YouTube with hand gestures: play, pause and skip. Video is processed on your device and never leaves it.",
   "minimum_chrome_version": "116",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
   "permissions": ["storage", "sidePanel"],
   "host_permissions": ["https://www.youtube.com/*"],
   "background": {
@@ -14,7 +20,11 @@
     "default_path": "pages/control-panel/index.html"
   },
   "action": {
-    "default_title": "Open Lophorina"
+    "default_title": "Open Lophorina",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png"
+    }
   },
   "content_scripts": [
     {
@@ -25,7 +35,9 @@
   ],
   "commands": {
     "toggle-control": {
-      "suggested_key": { "default": "Alt+Shift+G" },
+      "suggested_key": {
+        "default": "Alt+Shift+G"
+      },
       "description": "Start / stop gesture control"
     }
   },

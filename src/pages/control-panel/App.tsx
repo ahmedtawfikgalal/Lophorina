@@ -14,6 +14,9 @@ type Props = {
   watchYouTube: (onChange: (t: YouTubeTarget) => void) => () => void;
 };
 
+// Developer tools (Diagnostics, recorder) exist only in spike builds, not in the store build.
+const DEV_TOOLS = import.meta.env.VITE_DEV_TOOLS === 'true';
+
 const openPermissionPage = () =>
   void chrome.tabs.create({ url: chrome.runtime.getURL('pages/permission/index.html') });
 
@@ -63,7 +66,7 @@ export function App({ session, watchYouTube }: Props) {
     <main className="panel">
       <header className="panel__header">
         <h1>Lophorina</h1>
-        <span className="tag">Preview build</span>
+        <span className="tag">v{chrome.runtime.getManifest().version}</span>
       </header>
 
       <section aria-label="Control">
@@ -104,6 +107,22 @@ export function App({ session, watchYouTube }: Props) {
           </p>
         )}
       </section>
+
+      {!on && (
+        <section aria-labelledby="howto-heading">
+          <h2 id="howto-heading">How to use</h2>
+          <ol className="howto">
+            <li>Open a YouTube video in this window.</li>
+            <li>Press Start Control and keep your hand in front of the camera.</li>
+            <li>
+              Hold a pose still for about a second: <strong>open palm</strong> = Play/Pause,{' '}
+              <strong>thumb up</strong> = +10 s, <strong>thumb down</strong> = −10 s.
+            </li>
+            <li>Press Stop Control or close this panel to turn the camera off.</li>
+          </ol>
+          <p className="hint">Video is processed on your device and never leaves it.</p>
+        </section>
+      )}
 
       {on && view.stream && (
         <section aria-labelledby="camera-heading">
@@ -150,7 +169,7 @@ export function App({ session, watchYouTube }: Props) {
       </section>
 
       <GestureSettingsPanel session={session} settings={view.gestureSettings} />
-      <Diagnostics session={session} view={view} target={target} />
+      {DEV_TOOLS && <Diagnostics session={session} view={view} target={target} />}
     </main>
   );
 }

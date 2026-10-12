@@ -14,7 +14,8 @@
     "format": "prettier --write .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "smoke": "node scripts/smoke-extension.mjs"
+    "smoke": "node scripts/smoke-extension.mjs",
+    "package": "npm run build && node scripts/package.mjs"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "1.1.0",

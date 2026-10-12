@@ -239,3 +239,10 @@ label.checkbox input {
   width: 18px;
   height: 18px;
 }
+.howto {
+  margin: 0 0 var(--space-2);
+  padding-left: var(--space-6);
+}
+.howto li {
+  margin-bottom: var(--space-1);
+}

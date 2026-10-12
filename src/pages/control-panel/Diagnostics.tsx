@@ -7,7 +7,7 @@ import { Button } from '../../design-system/components/Button';
 import type { Delegate } from '../../recognition/types';
 import type { YouTubeTarget } from './youtube-target';
 
-const RECORDER_ENABLED = import.meta.env.VITE_RECORDER === 'true';
+const RECORDER_ENABLED = import.meta.env.VITE_DEV_TOOLS === 'true';
 
 const fmt = (v: number | null | undefined, digits = 1) => (v == null ? '—' : v.toFixed(digits));
 

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Lophorina icon: open palm on the brand indigo (docs/ux/design-system.md). -->
+  <rect width="128" height="128" rx="28" fill="#4F46E5"/>
+  <g fill="#FFFFFF">
+    <rect x="36" y="58" width="56" height="44" rx="20"/>
+    <rect x="38" y="30" width="11" height="44" rx="5.5"/>
+    <rect x="52" y="22" width="11" height="50" rx="5.5"/>
+    <rect x="66" y="24" width="11" height="48" rx="5.5"/>
+    <rect x="80" y="34" width="10" height="40" rx="5"/>
+    <rect x="38" y="54" width="12" height="42" rx="6" transform="rotate(-38 44 92)"/>
+  </g>
+</svg>

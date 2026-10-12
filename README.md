@@ -2,7 +2,7 @@
 
 Privacy-first Chrome extension (Manifest V3) for hands-free YouTube control. Hand gestures are recognized on-device with MediaPipe; no video leaves the machine.
 
-**Status:** Week 4 — gestures and panel buttons control YouTube (open palm = Play/Pause, thumb up/down = ±10 s). See [docs/delivery/roadmap.md](docs/delivery/roadmap.md).
+**Status:** 0.1.0 release prepared for the Chrome Web Store (Unlisted). Open palm = Play/Pause, thumb up/down = ±10 s. See [docs/release/chrome-web-store.md](docs/release/chrome-web-store.md).
 
 ## Quick start
 
@@ -25,6 +25,7 @@ Then open `chrome://extensions`, turn on Developer mode, choose **Load unpacked*
 | `npm test`                        | Unit tests (Vitest)                                                                               |
 | `npm run smoke`                   | Headless Chromium + fake camera smoke test of `dist/`                                             |
 | `npm run lint` / `npm run format` | ESLint / Prettier                                                                                 |
+| `npm run package`                 | Store build zipped to `release/lophorina-<version>.zip`                                           |
 | `npm run assets`                  | Copy MediaPipe WASM and fetch the checksum-pinned model into `public/mediapipe/`                  |
 
 ## Layout
