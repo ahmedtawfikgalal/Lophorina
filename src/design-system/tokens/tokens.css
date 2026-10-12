@@ -1,0 +1,29 @@
+/* Design tokens — docs/ux/design-system.md */
+:root {
+  --color-primary: #4f46e5;
+  --color-primary-hover: #4338ca;
+  --color-success: #059669;
+  --color-success-text: #047857;
+  --color-warning: #d97706;
+  --color-warning-text: #b45309;
+  --color-danger: #dc2626;
+  --color-text: #111827;
+  --color-text-muted: #4b5563;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f9fafb;
+  --color-border: #e5e7eb;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+
+  --font-family: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-body: 14px / 20px var(--font-family);
+  --font-caption: 12px / 16px var(--font-family);
+}

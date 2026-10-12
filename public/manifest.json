@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "Lophorina",
+  "version": "0.1.0",
+  "description": "Hands-free YouTube control with on-device gesture recognition. Week 1 technical spike build.",
+  "minimum_chrome_version": "116",
+  "permissions": ["storage", "sidePanel"],
+  "host_permissions": ["https://www.youtube.com/*"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "pages/control-panel/index.html"
+  },
+  "action": {
+    "default_title": "Open Lophorina"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["youtube-content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "commands": {
+    "toggle-control": {
+      "suggested_key": { "default": "Alt+Shift+G" },
+      "description": "Start / stop gesture control"
+    }
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; connect-src 'self'"
+  }
+}
