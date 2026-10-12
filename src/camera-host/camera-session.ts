@@ -1,6 +1,7 @@
 // Wires camera, recognition pipeline, lifecycle and metrics for the camera host.
 // UI subscribes via subscribe()/getView() (useSyncExternalStore-compatible).
 
+import { GestureEngine, type GestureIntent } from '../interaction/gesture-engine';
 import type { Delegate, GestureObservation } from '../recognition/types';
 import { CameraManager, cameraPermissionState, type PermissionProbe } from './camera-manager';
 import { cameraIsOn, transition, type LifecycleEvent, type LifecycleState } from './lifecycle';
@@ -30,6 +31,8 @@ export type SessionView = {
   /** Delegate actually in use, which may differ from settings after a fallback. */
   activeDelegate: Delegate | null;
   latest: GestureObservation | null;
+  /** Most recent deliberate gesture (preview only until commands exist, Week 4). */
+  lastIntent: { intent: GestureIntent; at: number } | null;
   metrics: MetricsSnapshot | null;
   lastStopLatencyMs: number | null;
   /** What the camera actually negotiated (resolution, frame rate). */
@@ -64,6 +67,7 @@ const MAX_RECORDED = 200_000;
 export class CameraSession {
   private readonly deps: SessionDeps;
   private pipeline: RecognitionPipeline | null = null;
+  private readonly engine = new GestureEngine();
   private metrics: SpikeMetrics | null = null;
   private generation = 0;
   private gpuCheck: { samples: number[]; timer: ReturnType<typeof setTimeout> } | null = null;
@@ -95,6 +99,7 @@ export class CameraSession {
       needsPermissionPage: false,
       activeDelegate: null,
       latest: null,
+      lastIntent: null,
       metrics: null,
       lastStopLatencyMs: null,
       trackSettings: null,
@@ -143,7 +148,14 @@ export class CameraSession {
     const event: LifecycleEvent = lifecycle === 'ERROR' ? 'RETRY' : 'START';
     if (!this.dispatch(event)) return;
     const gen = ++this.generation;
-    this.update({ error: null, notice: null, needsPermissionPage: false, activeDelegate: null });
+    this.engine.reset();
+    this.update({
+      error: null,
+      notice: null,
+      needsPermissionPage: false,
+      activeDelegate: null,
+      lastIntent: null,
+    });
 
     let stream: MediaStream;
     try {
@@ -350,6 +362,11 @@ export class CameraSession {
     this.checkGpu(gen, inferenceMs);
     this.view = { ...this.view, latest: obs };
     this.observationListeners.forEach((fn) => fn(obs));
+    const intent = this.engine.push(obs);
+    if (intent) {
+      this.log('intent', intent.kind === 'SWIPE' ? `SWIPE_${intent.direction}` : intent.kind);
+      this.update({ lastIntent: { intent, at: Date.now() } });
+    }
     if (this.view.recording && this.recorded.length < MAX_RECORDED) this.recorded.push(obs);
   }
 

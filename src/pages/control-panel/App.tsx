@@ -5,6 +5,7 @@ import { Button } from '../../design-system/components/Button';
 import { StatusBadge } from '../../design-system/components/StatusBadge';
 import { CameraPreview } from './CameraPreview';
 import { Diagnostics } from './Diagnostics';
+import { GestureFeedback } from './GestureFeedback';
 import type { YouTubeTarget } from './youtube-target';
 
 type Props = {
@@ -101,8 +102,10 @@ export function App({ session, watchYouTube }: Props) {
         <section aria-labelledby="camera-heading">
           <h2 id="camera-heading">Camera</h2>
           <CameraPreview session={session} stream={view.stream} />
+          <GestureFeedback lastIntent={view.lastIntent} />
           <p className="hint">
-            Gesture commands arrive in a later build; for now this shows what the camera sees.
+            Gestures: hold an open palm still for Play/Pause; swipe left or right to seek. In this
+            build they are only shown here, not sent to YouTube.
           </p>
         </section>
       )}

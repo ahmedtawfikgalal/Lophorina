@@ -203,3 +203,10 @@ input {
   clip-path: inset(50%);
   white-space: nowrap;
 }
+.gesture-feedback {
+  min-height: 24px;
+  margin: var(--space-2) 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-primary);
+}

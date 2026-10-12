@@ -20,11 +20,16 @@ export type HandPlacement =
 // Palm center: wrist and the four finger bases (MediaPipe hand landmark indices).
 const PALM = [0, 5, 9, 13, 17];
 
+/** Mean of the wrist and the four finger bases, in normalized image coordinates. */
+export function palmCenter(landmarks: ReadonlyArray<Landmark>): { x: number; y: number } {
+  const palm = PALM.map((i) => landmarks[i]).filter((p): p is Landmark => p !== undefined);
+  const n = palm.length || 1;
+  return { x: palm.reduce((s, p) => s + p.x, 0) / n, y: palm.reduce((s, p) => s + p.y, 0) / n };
+}
+
 export function handPlacement(landmarks: ReadonlyArray<Landmark>): HandPlacement {
   if (landmarks.length < 21) return 'too-far-away';
-  const palm = PALM.map((i) => landmarks[i]).filter((p): p is Landmark => p !== undefined);
-  const cx = palm.reduce((s, p) => s + p.x, 0) / palm.length;
-  const cy = palm.reduce((s, p) => s + p.y, 0) / palm.length;
+  const { x: cx, y: cy } = palmCenter(landmarks);
   const ys = landmarks.map((p) => p.y);
   const size = Math.max(...ys) - Math.min(...ys);
 
