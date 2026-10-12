@@ -51,7 +51,9 @@ sequenceDiagram
   SW-->>H: COMMAND_RESULT
 ```
 
-Routing through the service worker keeps session validation in one place. **[To verify in spike]** if the extra hop materially affects P95 latency, the camera host may call `chrome.tabs.sendMessage` directly; the content script's own validation remains mandatory either way.
+**Decision (Week 4): the camera host sends commands directly to the tab** with `chrome.tabs.sendMessage`, and no service-worker relay is used. The Side Panel is the only sender, it owns the session and the arming state (`TRACKING` only while a YouTube watch tab is the active tab in its window), and the content script validates every message independently. A relay would add a hop and session state that must survive service-worker restarts, without adding a check the two ends don't already make. Revisit this if a second sender appears (for example, an offscreen host or keyboard commands from the service worker).
+
+The diagram above shows the original relay design and is kept for reference.
 
 ## Validation rules
 

@@ -41,6 +41,62 @@ function findChromium() {
   );
 }
 
+/** Minimal watch page: the player markup the adapter looks for, fed by a canvas stream. */
+const FAKE_WATCH_PAGE = `<!doctype html><title>Fake video - YouTube</title>
+<div id="movie_player"><video class="html5-main-video" muted></video></div>
+<script>
+  const c = Object.assign(document.createElement('canvas'), { width: 64, height: 36 });
+  const ctx = c.getContext('2d');
+  setInterval(() => { ctx.fillStyle = '#' + Math.floor(Math.random() * 1e6); ctx.fillRect(0, 0, 64, 36); }, 50);
+  const v = document.querySelector('video');
+  v.srcObject = c.captureStream(15);
+  v.play();
+</script>`;
+
+async function checkYouTubeAdapter(panel) {
+  await context.route('https://www.youtube.com/**', (route) => {
+    routed.add(route.request().url());
+    return route.fulfill({ contentType: 'text/html', body: FAKE_WATCH_PAGE });
+  });
+  const yt = await context.newPage();
+  await yt.goto('https://www.youtube.com/watch?v=smoke');
+  await yt.waitForFunction(() => !document.querySelector('video')?.paused);
+
+  // Send real EXECUTE_COMMAND messages from the extension page, as the panel does.
+  const send = (command) =>
+    panel.evaluate(async (cmd) => {
+      const [tab] = await chrome.tabs.query({ url: 'https://www.youtube.com/*' });
+      return chrome.tabs.sendMessage(tab.id, {
+        type: 'EXECUTE_COMMAND',
+        sessionId: 'smoke',
+        commandId: crypto.randomUUID(),
+        targetTabId: tab.id,
+        command: cmd,
+        issuedAt: performance.now(),
+      });
+    }, command);
+
+  const paused = await send({ type: 'MEDIA_TOGGLE' });
+  const pausedInPage = await yt.evaluate(() => document.querySelector('video').paused);
+  const playing = await send({ type: 'MEDIA_TOGGLE' });
+  const rejected = await send({ type: 'MEDIA_SEEK', deltaSeconds: 30 });
+
+  await yt.goto('https://www.youtube.com/');
+  const home = await send({ type: 'MEDIA_TOGGLE' });
+  await yt.close();
+
+  const ok =
+    paused?.state === 'paused' &&
+    pausedInPage === true &&
+    playing?.state === 'playing' &&
+    rejected?.reason === 'INVALID_MESSAGE' &&
+    home?.reason === 'UNSUPPORTED_PAGE';
+  console.log(
+    `${ok ? '✓' : '✗'} YouTube adapter: pause ${paused?.state}, play ${playing?.state}, invalid seek ${rejected?.reason}, home page ${home?.reason}`,
+  );
+  return ok;
+}
+
 if (!existsSync(join(dist, 'manifest.json'))) throw new Error('dist/ missing — run npm run build');
 
 const profile = await mkdtemp(join(tmpdir(), 'lophorina-smoke-'));
@@ -56,6 +112,8 @@ const context = await chromium.launchPersistentContext(profile, {
 });
 
 const external = [];
+/** URLs answered locally by context.route (the fake YouTube page), not real network. */
+const routed = new Set();
 const consoleErrors = [];
 context.on('request', (req) => {
   const url = req.url();
@@ -128,6 +186,9 @@ try {
       `${ok ? '✓' : '✗'} ${label} [${delegate}]: ${rate} obs/s, inference ${latency}, stalls ${stalls}, stop ${stop} (${runFor}s)`,
     );
   }
+
+  // YouTube adapter end to end, against a local stand-in for a watch page (no network).
+  failed ||= !(await checkYouTubeAdapter(page));
 } catch (e) {
   failed = true;
   console.error(e);
@@ -142,11 +203,12 @@ const cspBlocked = consoleErrors.filter((e) =>
 const otherErrors = consoleErrors.filter(
   (e) => !cspBlocked.includes(e) && !e.startsWith('INFO: Created TensorFlow Lite'),
 );
-console.log(`external requests: ${external.length === 0 ? 'none' : external.join(', ')}`);
+console.log(`external requests: ${external.filter((u) => !routed.has(u)).join(', ') || 'none'}`);
 if (cspBlocked.length) {
   console.log(`CSP blocked (expected for MediaPipe logging): ${cspBlocked.length}`);
   if (args.has('verbose')) console.log(`  ${cspBlocked.join('\n  ')}`);
 }
 if (otherErrors.length) console.log(`console errors:\n  ${otherErrors.join('\n  ')}`);
-if (external.length) failed = true;
+const network = external.filter((u) => !routed.has(u));
+if (network.length) failed = true;
 process.exit(failed ? 1 : 0);

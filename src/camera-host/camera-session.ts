@@ -1,10 +1,19 @@
 // Wires camera, recognition pipeline, lifecycle and metrics for the camera host.
 // UI subscribes via subscribe()/getView() (useSyncExternalStore-compatible).
 
-import { GestureEngine, type GestureIntent } from '../interaction/gesture-engine';
+import { commandFor, commandLabel, describeResult } from '../interaction/commands';
+import { GestureEngine } from '../interaction/gesture-engine';
+import type { BrowserCommand, CommandResult, ExtensionMessage } from '../messaging/contracts';
+import { isCommandResult } from '../messaging/validate';
 import type { Delegate, GestureObservation } from '../recognition/types';
 import { CameraManager, cameraPermissionState, type PermissionProbe } from './camera-manager';
-import { cameraIsOn, transition, type LifecycleEvent, type LifecycleState } from './lifecycle';
+import {
+  cameraIsOn,
+  commandsPermitted,
+  transition,
+  type LifecycleEvent,
+  type LifecycleState,
+} from './lifecycle';
 import { SpikeMetrics, type MetricsSnapshot } from './metrics';
 import {
   createPipeline,
@@ -17,6 +26,11 @@ import {
 export type SessionSettings = { strategy: Strategy; delegate: Delegate; targetFps: number };
 
 export type SessionEvent = { t: number; kind: string; detail?: string };
+
+/** The YouTube watch tab that receives commands (active tab in this window). */
+export type ControlTarget = { tabId: number; title: string | null };
+
+export type Feedback = { text: string; tone: 'ok' | 'info' | 'error'; at: number };
 
 export type SessionView = {
   lifecycle: LifecycleState;
@@ -31,8 +45,9 @@ export type SessionView = {
   /** Delegate actually in use, which may differ from settings after a fallback. */
   activeDelegate: Delegate | null;
   latest: GestureObservation | null;
-  /** Most recent deliberate gesture (preview only until commands exist, Week 4). */
-  lastIntent: { intent: GestureIntent; at: number } | null;
+  target: ControlTarget | null;
+  /** Latest recognized gesture or command outcome, shown briefly in the panel. */
+  feedback: Feedback | null;
   metrics: MetricsSnapshot | null;
   lastStopLatencyMs: number | null;
   /** What the camera actually negotiated (resolution, frame rate). */
@@ -52,6 +67,7 @@ export type SessionDeps = {
     callbacks: PipelineCallbacks,
   ) => RecognitionPipeline;
   permissionState: () => Promise<PermissionProbe>;
+  sendCommand: (tabId: number, message: ExtensionMessage) => Promise<unknown>;
 };
 
 const UI_REFRESH_MS = 250;
@@ -68,6 +84,7 @@ export class CameraSession {
   private readonly deps: SessionDeps;
   private pipeline: RecognitionPipeline | null = null;
   private readonly engine = new GestureEngine();
+  private sessionId = '';
   private metrics: SpikeMetrics | null = null;
   private generation = 0;
   private gpuCheck: { samples: number[]; timer: ReturnType<typeof setTimeout> } | null = null;
@@ -88,6 +105,8 @@ export class CameraSession {
       camera: deps.camera ?? new CameraManager(),
       createPipeline: deps.createPipeline ?? createPipeline,
       permissionState: deps.permissionState ?? cameraPermissionState,
+      sendCommand:
+        deps.sendCommand ?? ((tabId, message) => chrome.tabs.sendMessage(tabId, message)),
     };
     this.view = {
       lifecycle: 'OFF',
@@ -99,7 +118,8 @@ export class CameraSession {
       needsPermissionPage: false,
       activeDelegate: null,
       latest: null,
-      lastIntent: null,
+      target: null,
+      feedback: null,
       metrics: null,
       lastStopLatencyMs: null,
       trackSettings: null,
@@ -149,12 +169,13 @@ export class CameraSession {
     if (!this.dispatch(event)) return;
     const gen = ++this.generation;
     this.engine.reset();
+    this.sessionId = crypto.randomUUID();
     this.update({
       error: null,
       notice: null,
       needsPermissionPage: false,
       activeDelegate: null,
-      lastIntent: null,
+      feedback: null,
     });
 
     let stream: MediaStream;
@@ -205,6 +226,69 @@ export class CameraSession {
     this.dispatch('INIT_SUCCEEDED', `${pipeline.strategy}, ${this.view.activeDelegate}`);
     this.refreshTimer = setInterval(() => this.refresh(), UI_REFRESH_MS);
     if (this.view.activeDelegate === 'GPU') this.armGpuCheck(gen);
+    this.updateArming();
+  }
+
+  /** The YouTube tab to control, or null when none is active in this window. */
+  setTarget(target: ControlTarget | null): void {
+    const same =
+      target?.tabId === this.view.target?.tabId && target?.title === this.view.target?.title;
+    if (same) return;
+    this.update({ target });
+    this.updateArming();
+  }
+
+  /** Buttons are an explicit user action, so they work whenever a target exists (AC-13). */
+  sendManual(command: BrowserCommand): void {
+    void this.dispatchCommand(command, 'button');
+  }
+
+  private updateArming(): void {
+    const { lifecycle, target } = this.view;
+    if (lifecycle === 'READY' && target) this.dispatch('ARM', `tab ${target.tabId}`);
+    else if (lifecycle === 'TRACKING' && !target) this.dispatch('DISARM', 'no YouTube tab');
+  }
+
+  private async dispatchCommand(command: BrowserCommand, source: 'gesture' | 'button') {
+    const target = this.view.target;
+    const label = commandLabel(command);
+    if (!target) {
+      this.update({
+        feedback: {
+          text: `${label}: open a YouTube video in this window to control it.`,
+          tone: 'info',
+          at: Date.now(),
+        },
+      });
+      return;
+    }
+    const message: ExtensionMessage = {
+      type: 'EXECUTE_COMMAND',
+      sessionId: this.sessionId || 'manual',
+      commandId: crypto.randomUUID(),
+      targetTabId: target.tabId,
+      command,
+      issuedAt: performance.now(),
+    };
+    let result: CommandResult;
+    try {
+      const response = await this.deps.sendCommand(target.tabId, message);
+      result = isCommandResult(response) ? response : { ok: false, reason: 'INVALID_MESSAGE' };
+    } catch {
+      result = { ok: false, reason: 'INVALID_MESSAGE' };
+    }
+    const latencyMs = performance.now() - message.issuedAt;
+    this.log(
+      'command',
+      `${source} ${label} → ${result.ok ? 'ok' : result.reason} (${latencyMs.toFixed(0)} ms)`,
+    );
+    this.update({
+      feedback: {
+        text: describeResult(command, result),
+        tone: result.ok ? 'ok' : 'error',
+        at: Date.now(),
+      },
+    });
   }
 
   /** Starts recognition with the first delegate that initializes. Returns null on failure. */
@@ -365,7 +449,18 @@ export class CameraSession {
     const intent = this.engine.push(obs);
     if (intent) {
       this.log('intent', intent.pose);
-      this.update({ lastIntent: { intent, at: Date.now() } });
+      const command = commandFor(intent.pose);
+      // Commands are only sent while armed (TRACKING); otherwise just say what was seen.
+      if (commandsPermitted(this.view.lifecycle)) void this.dispatchCommand(command, 'gesture');
+      else {
+        this.update({
+          feedback: {
+            text: `${commandLabel(command)} recognized. Open a YouTube video in this window to control it.`,
+            tone: 'info',
+            at: Date.now(),
+          },
+        });
+      }
     }
     if (this.view.recording && this.recorded.length < MAX_RECORDED) this.recorded.push(obs);
   }

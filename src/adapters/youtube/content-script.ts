@@ -1,32 +1,37 @@
-// YouTube content script — Week 1 spike: read-only probe used to confirm the content-script
-// build and messaging path. Command execution (ADR-004) arrives in Week 4.
-import type { YouTubeProbeResult } from '../../messaging/contracts';
-import { isSpikeMessage } from '../../messaging/validate';
-
-const MAIN_VIDEO_SELECTORS = ['#movie_player video.html5-main-video', '#movie_player video'];
-
-function findMainVideo(): HTMLVideoElement | null {
-  for (const selector of MAIN_VIDEO_SELECTORS) {
-    const el = document.querySelector(selector);
-    if (el instanceof HTMLVideoElement) return el;
-  }
-  return null;
-}
+// YouTube content script: answers read-only probes and executes validated commands (ADR-004).
+import type { CommandResult, YouTubeProbeResult } from '../../messaging/contracts';
+import { isExtensionMessage, isSpikeMessage } from '../../messaging/validate';
+import { domPage, execute } from './youtube-adapter';
 
 function probe(): YouTubeProbeResult {
-  const video = findMainVideo();
+  const page = domPage(document, location);
+  const video = page.mainVideo();
   return {
     type: 'YT_PROBE_RESULT',
-    onWatchPage: location.pathname === '/watch',
+    onWatchPage: page.pathname === '/watch',
     hasMainVideo: video !== null,
     paused: video ? video.paused : null,
-    adShowing: document.querySelector('#movie_player.ad-showing') !== null,
+    adShowing: page.adShowing(),
   };
 }
 
 chrome.runtime.onMessage.addListener((message: unknown, sender, sendResponse) => {
   // Only this extension's own pages may talk to the adapter; nothing from the page itself.
   if (sender.id !== chrome.runtime.id || sender.tab !== undefined) return;
-  if (!isSpikeMessage(message) || message.type !== 'YT_PROBE') return;
-  sendResponse(probe());
+
+  if (isSpikeMessage(message) && message.type === 'YT_PROBE') {
+    sendResponse(probe());
+    return;
+  }
+  if (isExtensionMessage(message) && message.type === 'EXECUTE_COMMAND') {
+    void execute(message.command, domPage(document, location)).then((result: CommandResult) =>
+      sendResponse(result),
+    );
+    return true; // keeps the channel open for the async response
+  }
+  // A command that fails validation still gets exactly one result (message-contracts.md).
+  if ((message as { type?: unknown } | null)?.type === 'EXECUTE_COMMAND') {
+    const invalid: CommandResult = { ok: false, reason: 'INVALID_MESSAGE' };
+    sendResponse(invalid);
+  }
 });

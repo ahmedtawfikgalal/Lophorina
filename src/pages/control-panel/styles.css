@@ -210,3 +210,21 @@ input {
   font-weight: 600;
   color: var(--color-primary);
 }
+.gesture-feedback--ok {
+  color: var(--color-success-text);
+}
+.gesture-feedback--error {
+  color: var(--color-danger);
+}
+.target--ok {
+  color: var(--color-success-text);
+  font-weight: 600;
+}
+.media-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr 1fr;
+  gap: var(--space-2);
+}
+.media-buttons .btn {
+  margin: 0;
+}

@@ -23,8 +23,11 @@ export default tseslint.config(
         fetch: 'readonly',
         Buffer: 'readonly',
         URL: 'readonly',
-        // referenced inside page.waitForFunction callbacks, which run in the browser
+        // referenced inside page.evaluate / waitForFunction callbacks, which run in the browser
         document: 'readonly',
+        chrome: 'readonly',
+        crypto: 'readonly',
+        performance: 'readonly',
       },
     },
   },

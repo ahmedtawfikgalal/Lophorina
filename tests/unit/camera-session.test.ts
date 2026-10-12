@@ -7,7 +7,8 @@ import type {
   RecognitionPipeline,
   Strategy,
 } from '../../src/camera-host/pipelines';
-import type { Delegate } from '../../src/recognition/types';
+import type { ExtensionMessage } from '../../src/messaging/contracts';
+import type { Delegate, GestureObservation } from '../../src/recognition/types';
 
 type Behavior = 'ok' | 'fail' | 'hang';
 
@@ -66,9 +67,11 @@ function setup(
     delegate?: Delegate;
     behaviors?: Partial<Record<Delegate, Behavior>>;
     permission?: PermissionProbe;
+    respond?: (message: ExtensionMessage) => unknown;
   } = {},
 ) {
   const camera = new FakeCamera();
+  const sent: { tabId: number; message: ExtensionMessage }[] = [];
   const pipelines: FakePipeline[] = [];
   const deps: SessionDeps = {
     camera,
@@ -78,6 +81,10 @@ function setup(
       return p;
     },
     permissionState: async () => opts.permission ?? 'prompt',
+    sendCommand: async (tabId, message) => {
+      sent.push({ tabId, message });
+      return opts.respond ? opts.respond(message) : { ok: true, state: 'paused' };
+    },
   };
   const session = new CameraSession(
     'chrome-extension://x/mediapipe/',
@@ -85,7 +92,7 @@ function setup(
     deps,
   );
   sessions.push(session);
-  return { session, camera, pipelines, view: () => session.getView() };
+  return { session, camera, pipelines, sent, view: () => session.getView() };
 }
 
 const sessions: CameraSession[] = [];
@@ -272,6 +279,106 @@ describe('CameraSession', () => {
       await settle();
       pipelines[0]?.cb.onObservation({ ...obs, handPresent: true, handCount: 1 }, 800, 1);
       expect(view().latest?.handPresent).not.toBe(true);
+    });
+  });
+
+  describe('YouTube control', () => {
+    const target = { tabId: 7, title: 'A video - YouTube' };
+    /** A still open palm held for ~1.3 s, enough for one PALM hold. */
+    const holdPalm = (p: FakePipeline | undefined, t0 = 0) => {
+      for (let i = 0; i < 20; i++) {
+        const landmarks = Array.from({ length: 21 }, (_, j) => ({
+          x: 0.5,
+          y: 0.3 + j * 0.02,
+          z: 0,
+        }));
+        const o: GestureObservation = {
+          timestamp: t0 + i * 66,
+          handPresent: true,
+          category: 'Open_Palm',
+          confidence: 0.6,
+          handCount: 1,
+          landmarks,
+        };
+        p?.cb.onObservation(o, 10, 1);
+      }
+    };
+    const settle = () => new Promise((r) => setTimeout(r, 0));
+
+    it('arms only while a YouTube watch tab is the target', async () => {
+      const { session, view } = setup();
+      await session.start();
+      expect(view().lifecycle).toBe('READY');
+      session.setTarget(target);
+      expect(view().lifecycle).toBe('TRACKING');
+      session.setTarget(null);
+      expect(view().lifecycle).toBe('READY');
+    });
+
+    it('arms right after starting when a target already exists', async () => {
+      const { session, view } = setup();
+      session.setTarget(target);
+      await session.start();
+      expect(view().lifecycle).toBe('TRACKING');
+    });
+
+    it('sends a gesture command to the target tab and shows the outcome', async () => {
+      const { session, pipelines, sent, view } = setup();
+      session.setTarget(target);
+      await session.start();
+      holdPalm(pipelines[0]);
+      await settle();
+      expect(sent).toHaveLength(1);
+      expect(sent[0]?.tabId).toBe(7);
+      expect(sent[0]?.message).toMatchObject({
+        type: 'EXECUTE_COMMAND',
+        targetTabId: 7,
+        command: { type: 'MEDIA_TOGGLE' },
+      });
+      expect(view().feedback).toMatchObject({ text: 'Video paused', tone: 'ok' });
+    });
+
+    it('does not send gesture commands while not armed', async () => {
+      const { session, pipelines, sent, view } = setup();
+      await session.start(); // READY, no target
+      holdPalm(pipelines[0]);
+      await settle();
+      expect(sent).toHaveLength(0);
+      expect(view().feedback?.text).toMatch(/recognized\. Open a YouTube video/);
+    });
+
+    it('stops sending once control is stopped', async () => {
+      const { session, pipelines, sent } = setup();
+      session.setTarget(target);
+      await session.start();
+      const p = pipelines[0];
+      session.stop();
+      holdPalm(p);
+      await settle();
+      expect(sent).toHaveLength(0);
+    });
+
+    it('lets the buttons control the video without the camera', async () => {
+      const { session, sent, view } = setup({ respond: () => ({ ok: true, currentTime: 60 }) });
+      session.setTarget(target);
+      session.sendManual({ type: 'MEDIA_SEEK', deltaSeconds: 10 });
+      await settle();
+      expect(sent[0]?.message).toMatchObject({ command: { type: 'MEDIA_SEEK', deltaSeconds: 10 } });
+      expect(view().feedback).toMatchObject({ text: '+10 s', tone: 'ok' });
+    });
+
+    it('explains failures, including a tab that does not answer', async () => {
+      const { session, view } = setup({ respond: () => ({ ok: false, reason: 'AD_PLAYING' }) });
+      session.setTarget(target);
+      session.sendManual({ type: 'MEDIA_SEEK', deltaSeconds: -10 });
+      await settle();
+      expect(view().feedback).toMatchObject({ tone: 'error', text: expect.stringMatching(/ad/) });
+
+      const silent = setup({ respond: () => undefined });
+      silent.session.setTarget(target);
+      silent.session.sendManual({ type: 'MEDIA_TOGGLE' });
+      await settle();
+      expect(silent.view().feedback?.text).toMatch(/did not respond/);
     });
   });
 });

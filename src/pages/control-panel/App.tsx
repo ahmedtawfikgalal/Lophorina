@@ -42,6 +42,12 @@ export function App({ session, watchYouTube }: Props) {
       watchYouTube((t) => {
         setTarget(t);
         session.setYouTubeFocused(t.focused, t.title ?? undefined);
+        // Only a reachable YouTube watch page can be controlled.
+        session.setTarget(
+          t.focused && t.tabId !== null && t.probe?.onWatchPage
+            ? { tabId: t.tabId, title: t.title }
+            : null,
+        );
       }),
     [session, watchYouTube],
   );
@@ -102,13 +108,45 @@ export function App({ session, watchYouTube }: Props) {
         <section aria-labelledby="camera-heading">
           <h2 id="camera-heading">Camera</h2>
           <CameraPreview session={session} stream={view.stream} />
-          <GestureFeedback lastIntent={view.lastIntent} />
+          <GestureFeedback feedback={view.feedback} />
           <p className="hint">
             Hold a pose still for about a second: open palm = Play/Pause, thumb up = +10 s, thumb
-            down = −10 s. In this build gestures are only shown here, not sent to YouTube.
+            down = −10 s.
           </p>
         </section>
       )}
+
+      <section aria-labelledby="youtube-heading">
+        <h2 id="youtube-heading">YouTube</h2>
+        <p className={view.target ? 'target target--ok' : 'target'}>
+          {view.target
+            ? `Controlling: ${view.target.title?.replace(/ - YouTube$/, '') ?? 'YouTube video'}`
+            : target?.focused && !target.probe
+              ? 'Reload the YouTube tab so Lophorina can reach it.'
+              : 'Open a YouTube video in this window to control it.'}
+        </p>
+        <div className="media-buttons" role="group" aria-label="Video controls">
+          <Button
+            disabled={!view.target}
+            onClick={() => session.sendManual({ type: 'MEDIA_SEEK', deltaSeconds: -10 })}
+          >
+            −10 s
+          </Button>
+          <Button
+            disabled={!view.target}
+            onClick={() => session.sendManual({ type: 'MEDIA_TOGGLE' })}
+          >
+            Play/Pause
+          </Button>
+          <Button
+            disabled={!view.target}
+            onClick={() => session.sendManual({ type: 'MEDIA_SEEK', deltaSeconds: 10 })}
+          >
+            +10 s
+          </Button>
+        </div>
+        {!(on && view.stream) && <GestureFeedback feedback={view.feedback} />}
+      </section>
 
       <Diagnostics session={session} view={view} target={target} />
     </main>
