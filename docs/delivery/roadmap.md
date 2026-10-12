@@ -50,7 +50,7 @@ Status (2026-10-12): implemented with held poses only: palm = Play/Pause, thumb 
 Message contracts + validators, service-worker routing with `chrome.storage.session`, YouTube adapter (ADR-004), controlled-tab tracking, feedback toasts, per-gesture enable/sensitivity settings.
 **Gate:** webcam → gesture → command → controlled tab → YouTube action → feedback, and Stop with no unintended commands.
 
-Status (2026-10-12): implemented; manual check pending.
+Status (2026-10-12): implemented and verified on the target laptop: palm, thumb up/down, buttons, non-YouTube tab, and reload all behaved as expected. **Gate passed.**
 
 - YouTube adapter (`src/adapters/youtube/youtube-adapter.ts`): Play/Pause and ±10 s on the main player, following the ADR-004 rules (watch pages only, ads, blocked `play()`, missing video). Every command gets exactly one result, including invalid ones.
 - Arming: `READY → TRACKING` only while a YouTube watch tab is the active tab in the panel's window; gestures are sent only in `TRACKING`.
