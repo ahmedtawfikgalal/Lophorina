@@ -1,5 +1,5 @@
 {
-  "description": "Labels for recorded landmark sessions (docs/testing/test-plan.md). Times are seconds from the first observation in each file. Expected counts are ranges: 'user' = what the person who recorded reported, 'data' = what is visible in the landmarks.",
+  "description": "Labels for recorded landmark sessions (docs/testing/test-plan.md). Times are seconds from the first observation in each file. Expected counts are ranges of intents: PALM_HOLD, THUMB_UP, THUMB_DOWN. Since ADR-006 swipes are not gestures, so swipe segments are ordinary hand movement that must produce no intents. 'user' = what the person who recorded reported, 'data' = what is visible in the landmarks.",
   "recordings": [
     {
       "file": "lophorina-recording-full-2-minutes-1791804121662.json",
@@ -12,8 +12,8 @@
           "kind": "palm-hold",
           "expected": {
             "PALM_HOLD": [8, 10],
-            "SWIPE_LEFT": [0, 0],
-            "SWIPE_RIGHT": [0, 0]
+            "THUMB_UP": [0, 0],
+            "THUMB_DOWN": [0, 0]
           },
           "notes": "user: about 10. Hand stays in view between holds (continuous Open_Palm); fingertips rise and fall 8-10 times. Wrist near the bottom edge of the frame."
         },
@@ -22,9 +22,9 @@
           "toS": 50,
           "kind": "swipe-left",
           "expected": {
-            "SWIPE_LEFT": [9, 10],
-            "SWIPE_RIGHT": [0, 0],
-            "PALM_HOLD": [0, 0]
+            "PALM_HOLD": [0, 0],
+            "THUMB_UP": [0, 0],
+            "THUMB_DOWN": [0, 0]
           },
           "notes": "user: about 10; data: 9 fast moves to the user's left. Return strokes present."
         },
@@ -33,9 +33,9 @@
           "toS": 77,
           "kind": "swipe-right",
           "expected": {
-            "SWIPE_RIGHT": [2, 10],
-            "SWIPE_LEFT": [0, 0],
-            "PALM_HOLD": [0, 0]
+            "PALM_HOLD": [0, 0],
+            "THUMB_UP": [0, 0],
+            "THUMB_DOWN": [0, 0]
           },
           "notes": "user: about 10; data: about 6 moves reach 25% of the frame within 500 ms. Fast wind-up moves to the left precede several swipes. Classifier often reports None (palm sideways). Week 3 analysis: most right swipes were not tracked (hand low at y≈0.85-0.9 and partly out of frame; MediaPipe mostly saw a small resting hand at the center), so only 2-3 swipes have tracking data. The strict checks are no wrong-direction swipes and no palm holds."
         },
@@ -45,8 +45,8 @@
           "kind": "negative",
           "expected": {
             "PALM_HOLD": [0, 0],
-            "SWIPE_LEFT": [0, 0],
-            "SWIPE_RIGHT": [0, 0]
+            "THUMB_UP": [0, 0],
+            "THUMB_DOWN": [0, 0]
           },
           "notes": "user: normal activity, no gestures. Contains 8 natural closed fists, each preceded by a brief open hand."
         }
@@ -63,8 +63,8 @@
           "kind": "palm-hold",
           "expected": {
             "PALM_HOLD": [2, 4],
-            "SWIPE_LEFT": [0, 0],
-            "SWIPE_RIGHT": [0, 0]
+            "THUMB_UP": [0, 0],
+            "THUMB_DOWN": [0, 0]
           },
           "notes": "Corrected in Week 3: the earlier label (3 holds of 1.6-2.8 s) counted continuous palm runs. The palm is pushed toward the camera in plateaus of 0.5-0.8 s, and the classifier reports None while the palm is close, so the hold count is ambiguous."
         }
@@ -80,9 +80,9 @@
           "toS": 19,
           "kind": "swipe-left",
           "expected": {
-            "SWIPE_LEFT": [6, 6],
-            "SWIPE_RIGHT": [0, 0],
-            "PALM_HOLD": [0, 0]
+            "PALM_HOLD": [0, 0],
+            "THUMB_UP": [0, 0],
+            "THUMB_DOWN": [0, 0]
           },
           "notes": "data: 6 swipes, each followed by a return stroke."
         }
@@ -98,9 +98,9 @@
           "toS": 23,
           "kind": "swipe-right",
           "expected": {
-            "SWIPE_RIGHT": [6, 8],
-            "SWIPE_LEFT": [0, 0],
-            "PALM_HOLD": [0, 0]
+            "PALM_HOLD": [0, 0],
+            "THUMB_UP": [0, 0],
+            "THUMB_DOWN": [0, 0]
           },
           "notes": "data: 6-8 swipes, less regular, with wind-ups and returns."
         }
@@ -117,8 +117,8 @@
           "kind": "negative",
           "expected": {
             "PALM_HOLD": [0, 0],
-            "SWIPE_LEFT": [0, 0],
-            "SWIPE_RIGHT": [0, 0]
+            "THUMB_UP": [0, 0],
+            "THUMB_DOWN": [0, 0]
           },
           "notes": "Closed fist held still for most of the session, with two brief open palms."
         }
@@ -130,5 +130,6 @@
     "lophorina-recording-swipe-left-1791799969554.json",
     "lophorina-recording-swipe-right-1791799993938.json",
     "lophorina-recording-negative-normal-1791800030167.json"
-  ]
+  ],
+  "unlabeled": ["lophorina-recording-unlabeled-1791808347601.json"]
 }

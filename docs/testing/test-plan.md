@@ -4,7 +4,7 @@
 
 | Layer             | Scope                                                                                                      | Tooling                                                                         |
 | ----------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Unit              | State machine, swipe detector, mapping engine, message validators, settings store                          | Vitest, injected clock                                                          |
+| Unit              | Gesture engine, message validators, settings store                                                         | Vitest, injected clock                                                          |
 | **Replay**        | Recorded landmark sessions fed through recognition-output → state machine; assert exact intent sequence    | Vitest + JSON fixtures in `tests/replay/`                                       |
 | Integration       | Service-worker routing, session/target validation, YouTube adapter against a fixture page and real YouTube | Vitest with Chrome API mocks; Playwright with unpacked extension where feasible |
 | Manual / scripted | Live camera tests below                                                                                    | Recorded test sheet                                                             |
@@ -16,7 +16,8 @@ A dev-only recorder in the camera host saves `GestureObservation[]` (landmarks, 
 Minimum set before Week 3 exit:
 
 - Each gesture × 20 deliberate attempts (bright and dim lighting, ~50 cm and ~1 m).
-- Swipe with natural return stroke (both directions).
+- Thumb up and thumb down holds (20 each), including switching between poses.
+- Swiping and waving, which must produce no commands.
 - Negative sessions: typing, drinking, adjusting hair/glasses, waving to someone, leaving frame, two hands visible, hand partly out of frame.
 - Slow and limited-range movements (accessibility).
 
@@ -32,7 +33,7 @@ Chrome version and OS · laptop model, CPU, RAM, webcam · MediaPipe package and
 
 **T2 — False activation.** 30 minutes of ordinary activity with control armed: moving, typing, posture changes, leaving the frame (AC-3).
 
-**T3 — Return stroke.** 20 swipes each direction with natural return (AC-5).
+**T3 — Pose confusion.** 20 holds each of palm, thumb up and thumb down, mixed order (AC-5).
 
 **T4 — YouTube integration.** Toggle and both seeks while playing, paused, near start, near end, during an ad, after SPA navigation to another video, with miniplayer active, on a non-watch page, with no video (AC-7).
 

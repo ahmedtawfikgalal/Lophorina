@@ -364,7 +364,7 @@ export class CameraSession {
     this.observationListeners.forEach((fn) => fn(obs));
     const intent = this.engine.push(obs);
     if (intent) {
-      this.log('intent', intent.kind === 'SWIPE' ? `SWIPE_${intent.direction}` : intent.kind);
+      this.log('intent', intent.pose);
       this.update({ lastIntent: { intent, at: Date.now() } });
     }
     if (this.view.recording && this.recorded.length < MAX_RECORDED) this.recorded.push(obs);

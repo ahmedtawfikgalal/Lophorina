@@ -104,8 +104,8 @@ export function App({ session, watchYouTube }: Props) {
           <CameraPreview session={session} stream={view.stream} />
           <GestureFeedback lastIntent={view.lastIntent} />
           <p className="hint">
-            Gestures: hold an open palm still for Play/Pause; swipe left or right to seek. In this
-            build they are only shown here, not sent to YouTube.
+            Hold a pose still for about a second: open palm = Play/Pause, thumb up = +10 s, thumb
+            down = −10 s. In this build gestures are only shown here, not sent to YouTube.
           </p>
         </section>
       )}

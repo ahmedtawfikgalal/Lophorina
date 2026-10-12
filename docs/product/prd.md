@@ -23,21 +23,21 @@ The central success question: _can a user perform a hands-free action without re
 2. First-run onboarding explains: camera is used locally, nothing is uploaded, how to stop.
 3. User clicks **Start Control** and grants camera permission.
 4. User opens or selects a YouTube watch tab; the extension shows it as the controlled tab.
-5. User holds an open palm → video toggles Play/Pause; swipes left/right → seeks −10 s / +10 s.
+5. User holds an open palm → video toggles Play/Pause; holds a thumb up / thumb down → seeks +10 s / −10 s (ADR-006).
 6. Each recognized command produces textual feedback.
 7. User clicks **Stop Control** (or uses the keyboard shortcut) → commands stop immediately, camera is released.
 
 ## MVP scope
 
-| In scope                                               | Notes                                          |
-| ------------------------------------------------------ | ---------------------------------------------- |
-| Explicit Start / Stop Control (button and keyboard)    | Camera never starts without a user action      |
-| Hold open palm → `MEDIA_TOGGLE`                        | Hold duration adjustable                       |
-| Swipe left / right → `MEDIA_SEEK` −10 / +10 s          | Directions defined from the user's perspective |
-| Visible camera and tracking status                     | Text + icon, never color alone                 |
-| Command feedback (recognized / executed / failed)      |                                                |
-| Per-gesture enable/disable and sensitivity setting     | Stored in `chrome.storage.local`               |
-| YouTube watch pages (`https://www.youtube.com/watch*`) | See ADR-004 for excluded page types            |
+| In scope                                               | Notes                                     |
+| ------------------------------------------------------ | ----------------------------------------- |
+| Explicit Start / Stop Control (button and keyboard)    | Camera never starts without a user action |
+| Hold open palm → `MEDIA_TOGGLE`                        | Hold duration adjustable                  |
+| Hold thumb up / down → `MEDIA_SEEK` +10 / −10 s        | Swipes dropped in Week 3 (ADR-006)        |
+| Visible camera and tracking status                     | Text + icon, never color alone            |
+| Command feedback (recognized / executed / failed)      |                                           |
+| Per-gesture enable/disable and sensitivity setting     | Stored in `chrome.storage.local`          |
+| YouTube watch pages (`https://www.youtube.com/watch*`) | See ADR-004 for excluded page types       |
 
 ## Explicitly out of scope for MVP
 
@@ -56,8 +56,8 @@ Release gates are defined in [testing/acceptance-criteria.md](../testing/accepta
 
 ## Open questions
 
-| #   | Question                                                                         | Resolved by                  |
-| --- | -------------------------------------------------------------------------------- | ---------------------------- |
-| Q1  | Side Panel or offscreen document for the camera?                                 | Week 1 spike (ADR-001)       |
-| Q2  | Is open palm + swipe a usable pair, or does a different static pose work better? | Week 1–3 recorded-data tests |
-| Q3  | Target laptop model for performance gates                                        | Tech Lead, before Week 1     |
+| #   | Question                                         | Resolved by                                       |
+| --- | ------------------------------------------------ | ------------------------------------------------- |
+| Q1  | Side Panel or offscreen document for the camera? | Week 1 spike (ADR-001)                            |
+| Q2  | Is open palm + swipe a usable pair?              | **Resolved (ADR-006):** no; seek uses thumb poses |
+| Q3  | Target laptop model for performance gates        | Tech Lead, before Week 1                          |

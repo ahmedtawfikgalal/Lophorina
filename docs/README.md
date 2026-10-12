@@ -37,6 +37,7 @@ Lophorina is a privacy-first Chrome Extension (Manifest V3) that lets a user con
 | [ADR-003](architecture/decisions/ADR-003-intentional-gesture-detection.md) | Explicit arming, temporal stabilization, re-arming, and return-stroke suppression                       | Accepted                           |
 | [ADR-004](architecture/decisions/ADR-004-youtube-adapter-scope.md)         | YouTube adapter supports Play/Pause and ±10 s seek only                                                 | Accepted                           |
 | [ADR-005](architecture/decisions/ADR-005-permissions-messaging-build.md)   | Minimal permissions, validated messages, packaged runtime assets                                        | Accepted                           |
+| [ADR-006](architecture/decisions/ADR-006-seek-with-thumb-poses.md)         | Seek with thumb up / down poses instead of swipes                                                       | Accepted                           |
 
 ## Maintenance rules
 

@@ -8,8 +8,8 @@ Status: Accepted
 | --------------------------------------------- | ---------------- | ------------------------------------------------------------- |
 | Start Control (button / shortcut)             | —                | Start camera, arm after initialization                        |
 | Hold open palm                                | `MEDIA_TOGGLE`   | `video.paused ? play() : pause()`                             |
-| Swipe left                                    | `MEDIA_SEEK -10` | `currentTime = max(0, t − 10)`                                |
-| Swipe right                                   | `MEDIA_SEEK +10` | `currentTime = min(duration, t + 10)` when duration is finite |
+| Hold thumb down (ADR-006)                     | `MEDIA_SEEK -10` | `currentTime = max(0, t − 10)`                                |
+| Hold thumb up (ADR-006)                       | `MEDIA_SEEK +10` | `currentTime = min(duration, t + 10)` when duration is finite |
 | Stop Control (button / shortcut / close host) | —                | Disable dispatch, release camera                              |
 
 Supported pages: `https://www.youtube.com/watch*` only.

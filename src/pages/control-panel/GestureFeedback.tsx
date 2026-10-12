@@ -5,8 +5,11 @@ import type { GestureIntent } from '../../interaction/gesture-engine';
 const SHOW_MS = 2_500;
 
 // Command each gesture will trigger (ADR-004).
-const LABEL = (i: GestureIntent) =>
-  i.kind === 'PALM_HOLD' ? 'Play/Pause' : i.direction === 'LEFT' ? 'Seek −10 s' : 'Seek +10 s';
+const LABEL: Record<GestureIntent['pose'], string> = {
+  OPEN_PALM: 'Play/Pause',
+  THUMB_UP: 'Seek +10 s',
+  THUMB_DOWN: 'Seek −10 s',
+};
 
 /** Briefly names the recognized gesture; announced to screen readers. */
 export function GestureFeedback({ lastIntent }: { lastIntent: SessionView['lastIntent'] }) {
@@ -21,7 +24,7 @@ export function GestureFeedback({ lastIntent }: { lastIntent: SessionView['lastI
 
   return (
     <p className="gesture-feedback" aria-live="polite">
-      {visible && lastIntent ? `${LABEL(lastIntent.intent)} recognized` : ''}
+      {visible && lastIntent ? `${LABEL[lastIntent.intent.pose]} recognized` : ''}
     </p>
   );
 }

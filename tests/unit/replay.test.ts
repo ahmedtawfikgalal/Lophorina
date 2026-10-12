@@ -14,7 +14,7 @@ type Manifest = { recordings: { file: string; segments: Segment[] }[] };
 const dir = join(import.meta.dirname, '..', 'replay');
 const manifest = JSON.parse(readFileSync(join(dir, 'manifest.json'), 'utf8')) as Manifest;
 
-const intentName = (i: GestureIntent) => (i.kind === 'SWIPE' ? `SWIPE_${i.direction}` : i.kind);
+const intentName = (i: GestureIntent) => (i.pose === 'OPEN_PALM' ? 'PALM_HOLD' : i.pose);
 
 function replay(file: string) {
   const { observations } = JSON.parse(readFileSync(join(dir, file), 'utf8')) as {
@@ -41,7 +41,8 @@ describe.each(manifest.recordings.map((r) => [r.file, r] as const))('replay %s',
       for (const i of inSeg) counts[i.name] = (counts[i.name] ?? 0) + 1;
       const report = inSeg.map((i) => `${i.name}@${i.atS.toFixed(1)}`).join(' ');
 
-      if (seg.kind === 'negative') expect(report).toBe('');
+      // Anything that is not a pose gesture (normal activity, swipes) must stay silent.
+      if (!['palm-hold', 'thumb-up', 'thumb-down'].includes(seg.kind)) expect(report).toBe('');
       for (const [name, [min, max]] of Object.entries(seg.expected)) {
         const n = counts[name] ?? 0;
         expect(n, `${name}: ${report}`).toBeGreaterThanOrEqual(min);

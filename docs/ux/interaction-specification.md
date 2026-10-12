@@ -56,6 +56,6 @@ All status changes are announced through an `aria-live="polite"` region; errors 
 - Full keyboard operation with visible focus.
 - State never communicated by color alone.
 - No reliance on sound; sound feedback is optional and off by default.
-- Hold time and swipe sensitivity adjustable.
+- Hold time adjustable.
 - Individual gestures can be disabled.
 - Layout works at Side Panel widths (≈ 320–400 px).

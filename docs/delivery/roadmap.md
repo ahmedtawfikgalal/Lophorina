@@ -43,7 +43,7 @@ Found while building: on a software renderer the GPU delegate initializes fine b
 `GestureStateMachine`, swipe detector with return-stroke suppression and stillness rule, mapping engine, unit + replay tests, replay dataset complete.
 **Gate:** replay suite produces exact expected intents, including held poses and fluctuating confidence.
 
-Status (2026-10-12): implemented. `src/interaction/gesture-engine.ts`, fitted to the recordings (ADR-003); replay suite in `tests/unit/replay.test.ts`. The panel shows the recognized gesture as a preview; nothing is sent to YouTube yet. Still to do: a fresh right-swipe recording with the hand inside the guide.
+Status (2026-10-12): implemented with held poses only: palm = Play/Pause, thumb up/down = ±10 s (ADR-006, after live testing showed swipes fire the wrong direction). `src/interaction/gesture-engine.ts` (ADR-003); replay suite in `tests/unit/replay.test.ts`. The panel shows the recognized gesture as a preview; nothing is sent to YouTube yet. Still to do: a labeled recording of thumb up / thumb down holds.
 
 ## Week 4 — Chrome integration and YouTube
 

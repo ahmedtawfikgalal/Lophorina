@@ -14,8 +14,8 @@ type Recording = { kind: string; observations: { timestamp: number }[] };
 
 const dir = join(import.meta.dirname, '..', 'replay');
 const manifest = JSON.parse(readFileSync(join(dir, 'manifest.json'), 'utf8')) as Manifest;
-const INTENTS = ['PALM_HOLD', 'SWIPE_LEFT', 'SWIPE_RIGHT'];
-const KINDS = ['palm-hold', 'swipe-left', 'swipe-right', 'negative'];
+const INTENTS = ['PALM_HOLD', 'THUMB_UP', 'THUMB_DOWN'];
+const KINDS = ['palm-hold', 'swipe-left', 'swipe-right', 'negative', 'thumb-up', 'thumb-down'];
 
 describe('replay manifest', () => {
   it.each(manifest.recordings.map((r) => [r.file, r] as const))(

@@ -41,7 +41,7 @@ Google Slides is a future second adapter behind the same `SiteAdapter` interface
 | `CameraManager`                   | Request, start, stop, release `MediaStream`                                                     | Interpret gestures                                   |
 | `FrameScheduler`                  | Pace inference (target rate configurable); must not depend on `requestAnimationFrame` (ADR-001) | Run inference on every frame by default              |
 | `GestureRecognizer`               | Wrap MediaPipe; emit normalized `GestureObservation`                                            | Emit commands                                        |
-| `GestureStateMachine`             | Arming, stabilization, cooldown, re-arm, swipe validation                                       | Know about YouTube                                   |
+| `GestureStateMachine`             | Arming, stabilization, cooldown, re-arm (held poses only, ADR-006)n                             | Know about YouTube                                   |
 | `MappingEngine`                   | Map intents to `BrowserCommand`, honoring per-gesture enable flags                              | Execute anything                                     |
 | `CommandDispatcher`               | Attach session/target metadata; send; surface results                                           | Bypass validation                                    |
 | Service worker                    | Browser events, routing, session validation, tab tracking                                       | Run camera or inference; keep state only in memory   |
@@ -60,7 +60,7 @@ type GestureObservation = {
   handedness?: 'Left' | 'Right';
 };
 
-type GestureIntent = { kind: 'PALM_HOLD' } | { kind: 'SWIPE'; direction: 'LEFT' | 'RIGHT' }; // user's perspective, not image space
+type GestureIntent = { kind: 'POSE_HOLD'; pose: 'OPEN_PALM' | 'THUMB_UP' | 'THUMB_DOWN' }; // ADR-006
 
 type BrowserCommand = { type: 'MEDIA_TOGGLE' } | { type: 'MEDIA_SEEK'; deltaSeconds: -10 | 10 };
 
@@ -99,8 +99,7 @@ src/
 │   ├── gesture-recognizer.ts
 │   └── types.ts
 ├── interaction/
-│   ├── gesture-state-machine.ts
-│   ├── swipe-detector.ts
+│   ├── gesture-engine.ts
 │   ├── mapping-engine.ts
 │   └── command-dispatcher.ts
 ├── adapters/
