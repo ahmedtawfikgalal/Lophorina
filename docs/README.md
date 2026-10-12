@@ -25,6 +25,7 @@ Lophorina is a privacy-first Chrome Extension (Manifest V3) that lets a user con
 | How is that evidence collected?                                     | [testing/test-plan.md](testing/test-plan.md)                                   |
 | Weekly plan and phase gates                                         | [delivery/roadmap.md](delivery/roadmap.md)                                     |
 | How to run the Week 1 spike, and its results                        | [delivery/week-1-spike.md](delivery/week-1-spike.md)                           |
+| Week 5 reliability checks and results                               | [delivery/week-5-reliability.md](delivery/week-5-reliability.md)               |
 | Known risks and owners                                              | [delivery/risk-register.md](delivery/risk-register.md)                         |
 | When is a feature done?                                             | [delivery/definition-of-done.md](delivery/definition-of-done.md)               |
 

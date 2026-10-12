@@ -28,6 +28,7 @@ export default tseslint.config(
         chrome: 'readonly',
         crypto: 'readonly',
         performance: 'readonly',
+        window: 'readonly',
       },
     },
   },

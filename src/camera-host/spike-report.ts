@@ -33,6 +33,8 @@ export async function buildSpikeReport(view: SessionView) {
     settings: view.settings,
     lifecycle: view.lifecycle,
     lastStopLatencyMs: view.lastStopLatencyMs,
+    gestureSettings: view.gestureSettings,
+    commandStats: view.commandStats,
     trackSettings: view.trackSettings,
     metrics: view.metrics,
     events: view.events,

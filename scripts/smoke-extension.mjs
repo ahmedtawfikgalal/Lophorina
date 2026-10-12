@@ -5,11 +5,17 @@
 //
 // Usage: npm run build && node scripts/smoke-extension.mjs [--seconds=10] [--long]
 //   --long  also waits past MediaPipe's 60 s logging flush to confirm the CSP blocks it.
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { homedir, tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { chromium } from 'playwright-core';
+import { createRequire } from 'node:module';
+
+const axeSource = readFileSync(
+  createRequire(import.meta.url).resolve('axe-core/axe.min.js'),
+  'utf8',
+);
 
 const args = new Map(
   process.argv.slice(2).map((a) => {
@@ -52,6 +58,35 @@ const FAKE_WATCH_PAGE = `<!doctype html><title>Fake video - YouTube</title>
   v.srcObject = c.captureStream(15);
   v.play();
 </script>`;
+
+async function axe(page, label) {
+  // Evaluated over CDP: the extension CSP (correctly) blocks injected script tags.
+  await page.evaluate(axeSource);
+  const result = await page.evaluate(async () => {
+    // Open collapsed sections so their contents are checked too.
+    document.querySelectorAll('details').forEach((d) => (d.open = true));
+    const r = await window.axe.run(document, {
+      runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'] },
+    });
+    return r.violations.map((v) => `${v.id} (${v.nodes.length}): ${v.help}`);
+  });
+  console.log(
+    `${result.length ? '✗' : '✓'} accessibility (${label}): ${result.length ? result.join('; ') : 'no WCAG A/AA violations'}`,
+  );
+  return result.length === 0;
+}
+
+async function checkAccessibility(panel) {
+  await panel.reload();
+  const idle = await axe(panel, 'idle');
+  await panel.getByRole('button', { name: 'Start Control' }).click();
+  await panel.waitForFunction(() =>
+    /Camera on|Camera error/.test(document.querySelector('[role=status]')?.textContent ?? ''),
+  );
+  const running = await axe(panel, 'camera on');
+  await panel.getByRole('button', { name: 'Stop Control' }).click();
+  return idle && running;
+}
 
 async function checkYouTubeAdapter(panel) {
   await context.route('https://www.youtube.com/**', (route) => {
@@ -186,6 +221,9 @@ try {
       `${ok ? '✓' : '✗'} ${label} [${delegate}]: ${rate} obs/s, inference ${latency}, stalls ${stalls}, stop ${stop} (${runFor}s)`,
     );
   }
+
+  // Automated WCAG 2 A/AA check of the panel, idle and with the camera running.
+  failed ||= !(await checkAccessibility(page));
 
   // YouTube adapter end to end, against a local stand-in for a watch page (no network).
   failed ||= !(await checkYouTubeAdapter(page));

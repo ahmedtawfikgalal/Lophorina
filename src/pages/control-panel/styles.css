@@ -228,3 +228,14 @@ input {
 .media-buttons .btn {
   margin: 0;
 }
+label.checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font: var(--font-body);
+  color: var(--color-text);
+}
+label.checkbox input {
+  width: 18px;
+  height: 18px;
+}

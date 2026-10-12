@@ -94,4 +94,16 @@ describe('GestureEngine', () => {
     const waving = (t: number, i: number) => obs(t, 'Open_Palm', 0.3 + (i % 10) * 0.04);
     expect(feed(new GestureEngine(), 60, waving)).toEqual([]);
   });
+
+  it('never fires a pose the user turned off', () => {
+    const enabled = { OPEN_PALM: true, THUMB_UP: false, THUMB_DOWN: true };
+    expect(feed(new GestureEngine({ enabled }), 40, (t) => obs(t, 'Thumb_Up'))).toEqual([]);
+    expect(feed(new GestureEngine({ enabled }), 40, (t) => obs(t))).toEqual(['OPEN_PALM']);
+  });
+
+  it('uses the configured hold time', () => {
+    const e = new GestureEngine({ holdMs: 1_500 });
+    expect(feed(e, 20, (t) => obs(t))).toEqual([]); // 1.25 s
+    expect(feed(e, 10, (t) => obs(t), 20 * FRAME_MS)).toEqual(['OPEN_PALM']);
+  });
 });

@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { watchCameraPermission } from '../../camera-host/camera-manager';
 import { CameraSession } from '../../camera-host/camera-session';
+import { loadSettings } from '../../storage/settings-store';
 import { isFromExtensionPage, isSpikeMessage } from '../../messaging/validate';
 import { App } from './App';
 import { watchYouTubeTarget } from './youtube-target';
@@ -16,6 +17,7 @@ const session = new CameraSession(chrome.runtime.getURL('mediapipe/'), {
 });
 
 void watchCameraPermission((state) => session.setPermission(state));
+void loadSettings().then((settings) => session.setGestureSettings(settings));
 
 document.addEventListener('visibilitychange', () => session.setPanelHidden(document.hidden));
 session.setPanelHidden(document.hidden);

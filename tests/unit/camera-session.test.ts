@@ -380,5 +380,34 @@ describe('CameraSession', () => {
       await settle();
       expect(silent.view().feedback?.text).toMatch(/did not respond/);
     });
+
+    it('counts commands per source with response times (AC-1, AC-3)', async () => {
+      const { session, pipelines, view } = setup({
+        respond: (m) =>
+          m.type === 'EXECUTE_COMMAND' && m.command.type === 'MEDIA_SEEK'
+            ? { ok: false, reason: 'AD_PLAYING' }
+            : { ok: true, state: 'paused' },
+      });
+      session.setTarget(target);
+      await session.start();
+      holdPalm(pipelines[0]);
+      session.sendManual({ type: 'MEDIA_SEEK', deltaSeconds: 10 });
+      await settle();
+      expect(view().commandStats).toMatchObject({ gesture: 1, button: 1, failed: 1 });
+      expect(view().commandStats.latencyP95).toEqual(expect.any(Number));
+    });
+
+    it('applies gesture settings (a disabled pose sends nothing)', async () => {
+      const { session, pipelines, sent } = setup();
+      session.setGestureSettings({
+        enabled: { OPEN_PALM: false, THUMB_UP: true, THUMB_DOWN: true },
+        holdMs: 700,
+      });
+      session.setTarget(target);
+      await session.start();
+      holdPalm(pipelines[0]);
+      await settle();
+      expect(sent).toHaveLength(0);
+    });
   });
 });

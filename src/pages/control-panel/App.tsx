@@ -6,6 +6,7 @@ import { StatusBadge } from '../../design-system/components/StatusBadge';
 import { CameraPreview } from './CameraPreview';
 import { Diagnostics } from './Diagnostics';
 import { GestureFeedback } from './GestureFeedback';
+import { GestureSettingsPanel } from './GestureSettingsPanel';
 import type { YouTubeTarget } from './youtube-target';
 
 type Props = {
@@ -148,6 +149,7 @@ export function App({ session, watchYouTube }: Props) {
         {!(on && view.stream) && <GestureFeedback feedback={view.feedback} />}
       </section>
 
+      <GestureSettingsPanel session={session} settings={view.gestureSettings} />
       <Diagnostics session={session} view={view} target={target} />
     </main>
   );

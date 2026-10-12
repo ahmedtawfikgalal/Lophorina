@@ -71,6 +71,20 @@ export function Diagnostics({ session, view, target }: Props) {
         </label>
       </fieldset>
 
+      <h3>Commands since Start Control</h3>
+      <dl className="grid">
+        <dt>From gestures</dt>
+        <dd>{view.commandStats.gesture}</dd>
+        <dt>From buttons</dt>
+        <dd>{view.commandStats.button}</dd>
+        <dt>Failed</dt>
+        <dd>{view.commandStats.failed}</dd>
+        <dt>Response P50 / P95</dt>
+        <dd>
+          {fmt(view.commandStats.latencyP50, 0)} / {fmt(view.commandStats.latencyP95, 0)} ms
+        </dd>
+      </dl>
+
       <h3>Measurements</h3>
       <dl className="grid">
         <dt>Delegate in use</dt>

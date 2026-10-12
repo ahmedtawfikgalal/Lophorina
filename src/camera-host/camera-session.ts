@@ -14,7 +14,8 @@ import {
   type LifecycleEvent,
   type LifecycleState,
 } from './lifecycle';
-import { SpikeMetrics, type MetricsSnapshot } from './metrics';
+import { DEFAULT_GESTURE_SETTINGS, type GestureSettings } from '../storage/settings-store';
+import { percentile, SpikeMetrics, type MetricsSnapshot } from './metrics';
 import {
   createPipeline,
   type PipelineCallbacks,
@@ -32,6 +33,23 @@ export type ControlTarget = { tabId: number; title: string | null };
 
 export type Feedback = { text: string; tone: 'ok' | 'info' | 'error'; at: number };
 
+/** Commands sent since Start Control. In a no-gesture test, any gesture command is a false activation (AC-3). */
+export type CommandStats = {
+  gesture: number;
+  button: number;
+  failed: number;
+  latencyP50: number | null;
+  latencyP95: number | null;
+};
+
+const EMPTY_STATS: CommandStats = {
+  gesture: 0,
+  button: 0,
+  failed: 0,
+  latencyP50: null,
+  latencyP95: null,
+};
+
 export type SessionView = {
   lifecycle: LifecycleState;
   settings: SessionSettings;
@@ -46,6 +64,8 @@ export type SessionView = {
   activeDelegate: Delegate | null;
   latest: GestureObservation | null;
   target: ControlTarget | null;
+  gestureSettings: GestureSettings;
+  commandStats: CommandStats;
   /** Latest recognized gesture or command outcome, shown briefly in the panel. */
   feedback: Feedback | null;
   metrics: MetricsSnapshot | null;
@@ -83,7 +103,8 @@ const MAX_RECORDED = 200_000;
 export class CameraSession {
   private readonly deps: SessionDeps;
   private pipeline: RecognitionPipeline | null = null;
-  private readonly engine = new GestureEngine();
+  private engine = new GestureEngine();
+  private latencies: number[] = [];
   private sessionId = '';
   private metrics: SpikeMetrics | null = null;
   private generation = 0;
@@ -119,6 +140,8 @@ export class CameraSession {
       activeDelegate: null,
       latest: null,
       target: null,
+      gestureSettings: DEFAULT_GESTURE_SETTINGS,
+      commandStats: EMPTY_STATS,
       feedback: null,
       metrics: null,
       lastStopLatencyMs: null,
@@ -170,6 +193,8 @@ export class CameraSession {
     const gen = ++this.generation;
     this.engine.reset();
     this.sessionId = crypto.randomUUID();
+    this.latencies = [];
+    this.update({ commandStats: EMPTY_STATS });
     this.update({
       error: null,
       notice: null,
@@ -229,6 +254,12 @@ export class CameraSession {
     this.updateArming();
   }
 
+  setGestureSettings(settings: GestureSettings): void {
+    this.engine = new GestureEngine({ enabled: settings.enabled, holdMs: settings.holdMs });
+    this.log('gesture-settings', JSON.stringify(settings));
+    this.update({ gestureSettings: settings });
+  }
+
   /** The YouTube tab to control, or null when none is active in this window. */
   setTarget(target: ControlTarget | null): void {
     const same =
@@ -278,6 +309,17 @@ export class CameraSession {
       result = { ok: false, reason: 'INVALID_MESSAGE' };
     }
     const latencyMs = performance.now() - message.issuedAt;
+    this.latencies.push(latencyMs);
+    const stats = this.view.commandStats;
+    this.update({
+      commandStats: {
+        gesture: stats.gesture + (source === 'gesture' ? 1 : 0),
+        button: stats.button + (source === 'button' ? 1 : 0),
+        failed: stats.failed + (result.ok ? 0 : 1),
+        latencyP50: percentile(this.latencies, 50),
+        latencyP95: percentile(this.latencies, 95),
+      },
+    });
     this.log(
       'command',
       `${source} ${label} → ${result.ok ? 'ok' : result.reason} (${latencyMs.toFixed(0)} ms)`,

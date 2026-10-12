@@ -65,6 +65,8 @@ Status (2026-10-12): implemented and verified on the target laptop: palm, thumb 
 Run T1–T8; fix by severity; keyboard alternatives and shortcut; privacy review; performance baseline.
 **Gate:** acceptance criteria met in the supported environment; known failures have recovery paths.
 
+Status (2026-10-12): automated checks done, plus gesture settings (on/off per gesture, hold time) and a command counter with P50/P95 response time. Manual steps are in [week-5-reliability.md](week-5-reliability.md).
+
 ## Week 6 — Pilot and packaging
 
 Production build tests, onboarding, privacy notice, troubleshooting guide, T9 pilot, release notes, version tag; Web Store submission or private unpacked pilot.

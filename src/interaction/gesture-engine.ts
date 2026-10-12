@@ -17,6 +17,8 @@ const POSES: Record<string, Pose> = {
 };
 
 export const DEFAULT_ENGINE_CONFIG = {
+  /** Poses the user has turned off never fire. */
+  enabled: { OPEN_PALM: true, THUMB_UP: true, THUMB_DOWN: true } as Record<Pose, boolean>,
   /** Score floor. Real palm holds scored ~0.6, so stillness carries the decision. */
   minScore: 0.5,
   holdMs: 700,
@@ -65,7 +67,8 @@ export class GestureEngine {
     const cfg = this.cfg;
     const t = obs.timestamp;
     const lm = obs.landmarks;
-    const pose = obs.confidence >= cfg.minScore ? POSES[obs.category] : undefined;
+    const recognized = obs.confidence >= cfg.minScore ? POSES[obs.category] : undefined;
+    const pose = recognized && cfg.enabled[recognized] ? recognized : undefined;
 
     if (!obs.handPresent || !lm || lm.length < 21) {
       this.last = null;

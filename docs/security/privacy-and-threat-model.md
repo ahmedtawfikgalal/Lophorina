@@ -9,7 +9,7 @@ Owner: Tech Lead / Security Reviewer
 | Camera frames                              | Camera host memory only                 | **Never**           | Discarded per frame                                     |
 | Hand landmarks / gesture observations      | Camera host (and its worker)            | Never               | In memory; ring buffer for the state machine            |
 | Recorded landmark sessions (dev/test only) | Developer machine, explicit opt-in tool | Never automatically | Deleted after test analysis; never in production builds |
-| Settings (enabled gestures, sensitivity)   | `chrome.storage.local`                  | No (no sync in MVP) | Until uninstall                                         |
+| Settings (enabled gestures, hold time)     | `chrome.storage.local`                  | No (no sync in MVP) | Until uninstall                                         |
 | Session state (`sessionId`, `targetTabId`) | `chrome.storage.session`                | No                  | Cleared on browser restart                              |
 
 No analytics, telemetry, crash reporting, or remote model download.
@@ -54,7 +54,7 @@ flowchart LR
 
 ## Review checklist (Week 5)
 
-- [ ] Network inspection during a 10-minute session shows zero requests from extension contexts.
-- [ ] Final manifest permissions match ADR-005.
+- [x] No external requests from extension contexts (automated smoke test; MediaPipe logging blocked by CSP). A manual 10-minute DevTools check is still listed in the Week 5 runbook.
+- [x] Final manifest permissions match ADR-005 and the code (Week 5 audit).
 - [ ] Privacy notice matches observed behavior.
-- [ ] Dev-only recording tool is excluded from the production build.
+- [x] Dev-only recording tool is excluded from the production build.
