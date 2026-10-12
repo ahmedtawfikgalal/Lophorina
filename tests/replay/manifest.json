@@ -1,0 +1,102 @@
+{
+  "description": "Labels for recorded landmark sessions (docs/testing/test-plan.md). Times are seconds from the first observation in each file. Expected counts are ranges: 'user' = what the person who recorded reported, 'data' = what is visible in the landmarks.",
+  "recordings": [
+    {
+      "file": "lophorina-recording-full-2-minutes-1791804121662.json",
+      "status": "primary",
+      "recordedAt": "2026-10-12T11:22:01Z",
+      "segments": [
+        {
+          "fromS": 0,
+          "toS": 25.5,
+          "kind": "palm-hold",
+          "expected": { "PALM_HOLD": [8, 10] },
+          "notes": "user: about 10. Hand stays in view between holds (continuous Open_Palm); fingertips rise and fall 8-10 times. Wrist near the bottom edge of the frame."
+        },
+        {
+          "fromS": 25.5,
+          "toS": 50,
+          "kind": "swipe-left",
+          "expected": { "SWIPE_LEFT": [9, 10], "SWIPE_RIGHT": [0, 0] },
+          "notes": "user: about 10; data: 9 fast moves to the user's left. Return strokes present."
+        },
+        {
+          "fromS": 50,
+          "toS": 77,
+          "kind": "swipe-right",
+          "expected": { "SWIPE_RIGHT": [6, 10], "SWIPE_LEFT": [0, 0] },
+          "notes": "user: about 10; data: about 6 moves reach 25% of the frame within 500 ms. Fast wind-up moves to the left precede several swipes. Classifier often reports None (palm sideways)."
+        },
+        {
+          "fromS": 77,
+          "toS": 111,
+          "kind": "negative",
+          "expected": { "PALM_HOLD": [0, 0], "SWIPE_LEFT": [0, 0], "SWIPE_RIGHT": [0, 0] },
+          "notes": "user: normal activity, no gestures. Contains 8 natural closed fists, each preceded by a brief open hand."
+        }
+      ]
+    },
+    {
+      "file": "lophorina-recording-palm-hold-1791803702854.json",
+      "status": "supplementary",
+      "recordedAt": "2026-10-12T11:15:02Z",
+      "segments": [
+        {
+          "fromS": 0,
+          "toS": 12,
+          "kind": "palm-hold",
+          "expected": { "PALM_HOLD": [3, 3], "SWIPE_LEFT": [0, 0], "SWIPE_RIGHT": [0, 0] },
+          "notes": "data: 3 holds of 1.6-2.8 s plus one 0.5 s palm that must not count."
+        }
+      ]
+    },
+    {
+      "file": "lophorina-recording-swipe-left-1791803738795.json",
+      "status": "supplementary",
+      "recordedAt": "2026-10-12T11:15:38Z",
+      "segments": [
+        {
+          "fromS": 0,
+          "toS": 19,
+          "kind": "swipe-left",
+          "expected": { "SWIPE_LEFT": [6, 6], "SWIPE_RIGHT": [0, 0] },
+          "notes": "data: 6 swipes, each followed by a return stroke."
+        }
+      ]
+    },
+    {
+      "file": "lophorina-recording-swipe-right-1791803776961.json",
+      "status": "supplementary",
+      "recordedAt": "2026-10-12T11:16:16Z",
+      "segments": [
+        {
+          "fromS": 0,
+          "toS": 23,
+          "kind": "swipe-right",
+          "expected": { "SWIPE_RIGHT": [6, 8], "SWIPE_LEFT": [0, 0] },
+          "notes": "data: 6-8 swipes, less regular, with wind-ups and returns."
+        }
+      ]
+    },
+    {
+      "file": "lophorina-recording-negative-normal-1791803820263.json",
+      "status": "supplementary",
+      "recordedAt": "2026-10-12T11:17:00Z",
+      "segments": [
+        {
+          "fromS": 0,
+          "toS": 26,
+          "kind": "negative",
+          "expected": { "PALM_HOLD": [0, 0], "SWIPE_LEFT": [0, 0], "SWIPE_RIGHT": [0, 0] },
+          "notes": "Closed fist held still for most of the session, with two brief open palms."
+        }
+      ]
+    }
+  ],
+  "superseded": [
+    "lophorina-recording-palm-hold-1791799927309.json",
+    "lophorina-recording-swipe-left-1791799969554.json",
+    "lophorina-recording-swipe-right-1791799993938.json",
+    "lophorina-recording-negative-normal-1791800030167.json"
+  ]
+}
