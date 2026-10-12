@@ -1,0 +1,42 @@
+{
+  "name": "lophorina",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Lophorina — privacy-first hands-free control for YouTube in Chrome, using local MediaPipe gesture recognition.",
+  "type": "module",
+  "scripts": {
+    "assets": "node scripts/prepare-assets.mjs",
+    "build": "npm run assets && tsc && vite build && vite build -c vite.content.config.ts",
+    "build:spike": "npm run assets && tsc && vite build --mode spike && vite build -c vite.content.config.ts --mode spike",
+    "watch": "vite build --watch --mode spike",
+    "typecheck": "tsc",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "smoke": "node scripts/smoke-extension.mjs"
+  },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "1.1.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/chrome": "0.3.5",
+    "@types/node": "26.6.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.2",
+    "eslint": "10.12.0",
+    "playwright-core": "1.64.0",
+    "prettier": "3.9.10",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.71.1",
+    "vite": "8.3.4",
+    "vitest": "5.0.3"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
