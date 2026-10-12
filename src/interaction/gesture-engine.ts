@@ -31,6 +31,12 @@ export const DEFAULT_ENGINE_CONFIG = {
   swipeMaxMs: 1_000,
   /** Horizontal travel must dominate vertical travel by this factor. */
   swipeDirectionRatio: 1.5,
+  /**
+   * After a swipe motion ends, wait this long for an opposite motion. Of two back-to-back
+   * opposite motions the longer one wins: a wind-up loses to the swipe that follows it,
+   * and a return stroke loses to the swipe before it.
+   */
+  swipePairWindowMs: 300,
   /** Single-step jumps bigger than this are tracking glitches (hand switch, re-detection). */
   maxStep: 0.35,
   /** Points further apart than this break a motion. */
@@ -43,7 +49,9 @@ export const DEFAULT_ENGINE_CONFIG = {
 export type EngineConfig = typeof DEFAULT_ENGINE_CONFIG;
 
 type Point = { t: number; x: number; y: number; size: number };
-type Motion = { start: Point; sign: number; peak: number; frames: number; emitted: boolean };
+type Motion = { start: Point; sign: number; peak: number; frames: number; claimed: boolean };
+/** A qualifying swipe motion awaiting the decision against a possible opposite motion. */
+type Candidate = { direction: SwipeDirection; motion: Motion; travel: number; endT: number | null };
 
 export class GestureEngine {
   private readonly cfg: EngineConfig;
@@ -54,6 +62,8 @@ export class GestureEngine {
   private lastPalmAt = -Infinity;
   private lastIntentAt = -Infinity;
   private lastSwipe: { t: number; direction: SwipeDirection } | null = null;
+  private pending: Candidate | null = null;
+  private rival: Candidate | null = null;
 
   constructor(config: Partial<EngineConfig> = {}) {
     this.cfg = { ...DEFAULT_ENGINE_CONFIG, ...config };
@@ -65,13 +75,15 @@ export class GestureEngine {
     this.anchor = null;
     this.holdFiredAt = null;
     this.lastPalmAt = -Infinity;
+    this.pending = null;
+    this.rival = null;
   }
 
   push(obs: GestureObservation): GestureIntent | null {
     const lm = obs.landmarks;
     if (!obs.handPresent || !lm || lm.length < 21) {
       this.loseTracking(obs.timestamp);
-      return null;
+      return this.decideSwipe(obs.timestamp);
     }
     const c = palmCenter(lm);
     const ys = lm.map((p) => p.y);
@@ -83,48 +95,96 @@ export class GestureEngine {
       // A gap or a jump: whatever was in progress is not one continuous gesture.
       this.motion = null;
       this.anchor = null;
-      return null;
+      this.endCandidates(prev.t);
+      return this.decideSwipe(p.t);
     }
 
-    const swipe = prev && obs.category !== 'Closed_Fist' ? this.trackSwipe(prev, p) : null;
-    if (swipe) return this.emit(p.t, { kind: 'SWIPE', direction: swipe });
+    if (prev && obs.category !== 'Closed_Fist') this.trackSwipe(prev, p);
+    else {
+      this.motion = null;
+      if (prev) this.endCandidates(prev.t);
+    }
+    const swipe = this.decideSwipe(p.t);
+    if (swipe) return swipe;
 
     return this.trackHold(obs, p) ? this.emit(p.t, { kind: 'PALM_HOLD' }) : null;
   }
 
-  private trackSwipe(prev: Point, p: Point): SwipeDirection | null {
+  private trackSwipe(prev: Point, p: Point): void {
     const speed = (p.x - prev.x) / ((p.t - prev.t) / 1000 || 1);
     const sign = Math.abs(speed) >= this.cfg.moveSpeed ? Math.sign(speed) : 0;
     if (sign === 0) {
       this.motion = null;
-      return null;
+    } else if (!this.motion || this.motion.sign !== sign) {
+      this.motion = { start: prev, sign, peak: 0, frames: 0, claimed: false };
     }
-    if (!this.motion || this.motion.sign !== sign) {
-      this.motion = { start: prev, sign, peak: 0, frames: 0, emitted: false };
-    }
+    this.endCandidates(prev.t);
+
     const m = this.motion;
+    if (!m) return;
     m.peak = Math.max(m.peak, Math.abs(speed));
     m.frames++;
-    // Return-stroke suppression counts from the end of the swipe motion, not its detection.
-    if (m.emitted && this.lastSwipe) this.lastSwipe.t = p.t;
-
     const dx = p.x - m.start.x;
     const dy = p.y - m.start.y;
+
+    // Keep measuring candidates whose motion is still going.
+    for (const cand of [this.pending, this.rival]) {
+      if (cand?.motion === m) cand.travel = Math.abs(dx);
+    }
+    // Return-stroke suppression counts from the end of the swipe motion.
+    if (m.claimed && this.lastSwipe && this.lastSwipe.direction === dirOf(dx)) {
+      this.lastSwipe.t = p.t;
+    }
+
     const qualifies =
-      !m.emitted &&
+      !m.claimed &&
       Math.abs(dx) >= this.cfg.swipeMinDistance &&
       Math.abs(dx) >= this.cfg.swipeDirectionRatio * Math.abs(dy) &&
       m.peak >= this.cfg.swipeMinPeakSpeed &&
       m.frames >= 3 &&
       p.t - m.start.t <= this.cfg.swipeMaxMs;
-    if (!qualifies) return null;
-    m.emitted = true; // one motion, one swipe
+    if (!qualifies) return;
+    m.claimed = true; // one motion, one candidate
 
-    // Raw image x grows toward the user's left (the frame is not mirrored).
-    const direction: SwipeDirection = dx > 0 ? 'LEFT' : 'RIGHT';
+    const cand: Candidate = { direction: dirOf(dx), motion: m, travel: Math.abs(dx), endT: null };
+    if (!this.pending) this.pending = cand;
+    else if (!this.rival && cand.direction !== this.pending.direction) this.rival = cand;
+  }
+
+  /** Marks candidates whose motion has finished. */
+  private endCandidates(t: number): void {
+    for (const cand of [this.pending, this.rival]) {
+      if (cand && cand.endT === null && cand.motion !== this.motion) cand.endT = t;
+    }
+  }
+
+  /** Emits a swipe once the back-to-back comparison is settled. */
+  private decideSwipe(t: number): GestureIntent | null {
+    const { pending, rival } = this;
+    if (!pending) return null;
+    let winner: Candidate;
+    if (rival) {
+      if (rival.travel > pending.travel) winner = rival;
+      else if (rival.endT !== null) winner = pending;
+      else return null;
+    } else if (pending.endT !== null && t - pending.endT >= this.cfg.swipePairWindowMs) {
+      winner = pending;
+    } else {
+      return null;
+    }
+    this.pending = null;
+    this.rival = null;
+
+    // A return stroke is judged by when it started, since deciding may take a while.
     const r = this.lastSwipe;
-    if (r && r.direction !== direction && p.t - r.t < this.cfg.returnSuppressMs) return null;
-    return direction;
+    const startedAt = winner.motion.start.t;
+    if (r && r.direction !== winner.direction && startedAt - r.t < this.cfg.returnSuppressMs) {
+      return null;
+    }
+    const intent = this.emit(t, { kind: 'SWIPE', direction: winner.direction });
+    // Suppression is measured from the end of the winning motion.
+    if (intent && this.lastSwipe) this.lastSwipe.t = winner.endT ?? t;
+    return intent;
   }
 
   private trackHold(obs: GestureObservation, p: Point): boolean {
@@ -173,6 +233,7 @@ export class GestureEngine {
   private loseTracking(t: number): void {
     this.last = null;
     this.motion = null;
+    this.endCandidates(t);
     if (t - this.lastPalmAt > this.cfg.palmGapMs) {
       this.anchor = null;
       this.holdFiredAt = null;
@@ -189,3 +250,6 @@ export class GestureEngine {
 }
 
 const dist = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
+
+/** Raw image x grows toward the user's left (the frame is not mirrored). */
+const dirOf = (dx: number): SwipeDirection => (dx > 0 ? 'LEFT' : 'RIGHT');

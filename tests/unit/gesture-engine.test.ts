@@ -79,39 +79,60 @@ describe('GestureEngine — palm hold', () => {
 });
 
 describe('GestureEngine — swipes', () => {
+  /** Runs motion segments back to back and returns all swipe directions. */
+  function swipes(...segments: [number, number, number][]) {
+    const e = new GestureEngine();
+    let t = 0;
+    const out: string[] = [];
+    for (const [x0, x1, frames] of segments) {
+      for (const g of feed(e, frames, move(x0, x1, frames), t)) {
+        if (g.intent.kind === 'SWIPE') out.push(g.intent.direction);
+      }
+      t += frames * FRAME_MS;
+    }
+    // Hold still long enough for the pending decision to settle.
+    for (const g of feed(e, 15, (_, tt) => obs(tt, segments.at(-1)?.[1] ?? 0.5, 0.5), t)) {
+      if (g.intent.kind === 'SWIPE') out.push(g.intent.direction);
+    }
+    return out;
+  }
+
   it('maps image motion to the user’s direction (frame not mirrored)', () => {
-    expect(feed(new GestureEngine(), 10, move(0.3, 0.8, 8))[0]?.intent).toEqual({
-      kind: 'SWIPE',
-      direction: 'LEFT',
-    });
-    expect(feed(new GestureEngine(), 10, move(0.8, 0.3, 8))[0]?.intent).toEqual({
-      kind: 'SWIPE',
-      direction: 'RIGHT',
-    });
+    expect(swipes([0.3, 0.8, 8])).toEqual(['LEFT']);
+    expect(swipes([0.8, 0.3, 8])).toEqual(['RIGHT']);
   });
 
-  it('emits one swipe per motion and suppresses the return stroke', () => {
-    const e = new GestureEngine();
-    const swipe = feed(e, 10, move(0.3, 0.8, 8));
-    const ret = feed(e, 12, move(0.8, 0.3, 10), 10 * FRAME_MS); // starts right after the swipe
-    expect(swipe).toHaveLength(1);
-    expect(ret).toHaveLength(0);
+  it('ignores the wind-up before a swipe (the longer motion wins)', () => {
+    // Bring the hand out to the user's right, then swipe left across the frame.
+    expect(swipes([0.5, 0.25, 4], [0.25, 0.85, 8])).toEqual(['LEFT']);
+    expect(swipes([0.5, 0.75, 4], [0.75, 0.15, 8])).toEqual(['RIGHT']);
+  });
+
+  it('suppresses the return stroke after a swipe', () => {
+    expect(swipes([0.2, 0.8, 8], [0.8, 0.4, 8])).toEqual(['LEFT']);
+    // Also when the return starts after the decision window.
+    expect(swipes([0.2, 0.8, 8], [0.8, 0.8, 8], [0.8, 0.4, 8])).toEqual(['LEFT']);
   });
 
   it('allows a repeated swipe in the same direction after the cooldown', () => {
     const e = new GestureEngine();
-    feed(e, 10, move(0.3, 0.8, 8));
-    feed(e, 20, (_, t) => none(t), 10 * FRAME_MS); // hand out of view, back to the start
-    expect(feed(e, 10, move(0.3, 0.8, 8), 30 * FRAME_MS)).toHaveLength(1);
+    const dirs = [
+      ...feed(e, 20, move(0.3, 0.8, 8)),
+      ...feed(e, 20, (_, t) => none(t), 20 * FRAME_MS), // hand out of view, back to the start
+      ...feed(e, 20, move(0.3, 0.8, 8), 40 * FRAME_MS),
+    ].map((g) => g.intent);
+    expect(dirs).toEqual([
+      { kind: 'SWIPE', direction: 'LEFT' },
+      { kind: 'SWIPE', direction: 'LEFT' },
+    ]);
   });
 
   it('ignores slow drifts, small moves, and single-frame tracking jumps', () => {
-    expect(feed(new GestureEngine(), 40, move(0.3, 0.8, 38))).toHaveLength(0); // ~0.2/s
-    expect(feed(new GestureEngine(), 10, move(0.45, 0.6, 5))).toHaveLength(0);
+    expect(swipes([0.3, 0.8, 38])).toEqual([]); // ~0.2 frame widths/s
+    expect(swipes([0.45, 0.6, 5])).toEqual([]);
     const jump = (i: number, t: number) => obs(t, i < 5 ? 0.3 : 0.75, 0.5);
-    expect(
-      feed(new GestureEngine(), 10, jump).filter((g) => g.intent.kind === 'SWIPE'),
-    ).toHaveLength(0);
+    const got = feed(new GestureEngine(), 20, jump).filter((g) => g.intent.kind === 'SWIPE');
+    expect(got).toHaveLength(0);
   });
 
   it('ignores mostly vertical motion', () => {
