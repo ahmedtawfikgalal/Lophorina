@@ -47,8 +47,14 @@ p {
 .status {
   font-weight: 600;
 }
-.status--on {
+.status--active {
   color: var(--color-success-text);
+}
+.status--inactive {
+  color: var(--color-text-muted);
+}
+.status--warning {
+  color: var(--color-warning-text);
 }
 .status--error {
   color: var(--color-danger);
@@ -100,10 +106,59 @@ input:focus-visible {
   background: var(--color-surface-muted);
 }
 .preview {
-  width: 100%;
+  position: relative;
+  overflow: hidden;
   border-radius: var(--radius-md);
   background: var(--color-text);
-  transform: scaleX(-1); /* mirrored for the user; landmarks are not mirrored */
+  transform: scaleX(-1); /* mirrored for the user; video and overlay flip together */
+}
+.preview video,
+.preview canvas {
+  display: block;
+  width: 100%;
+}
+.preview canvas {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+}
+.hand-status {
+  margin-top: var(--space-2);
+  font-weight: 600;
+}
+.hand-status--ok {
+  color: var(--color-success-text);
+}
+.hand-status--hint {
+  color: var(--color-warning-text);
+}
+.onboarding {
+  margin-top: var(--space-2);
+}
+.notice {
+  margin-top: var(--space-2);
+  padding: var(--space-3);
+  border-left: 4px solid var(--color-warning);
+  background: var(--color-surface-muted);
+}
+.diagnostics {
+  padding: var(--space-4);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+}
+.diagnostics summary {
+  font-weight: 600;
+  cursor: pointer;
+}
+.diagnostics summary:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: 2px;
+}
+h3 {
+  margin: var(--space-4) 0 var(--space-2);
+  font-size: 14px;
+  line-height: 20px;
 }
 .grid {
   display: grid;

@@ -1,5 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { watchCameraPermission } from '../../camera-host/camera-manager';
 import { CameraSession } from '../../camera-host/camera-session';
 import { isFromExtensionPage, isSpikeMessage } from '../../messaging/validate';
 import { App } from './App';
@@ -13,6 +14,8 @@ const session = new CameraSession(chrome.runtime.getURL('mediapipe/'), {
   delegate: 'GPU',
   targetFps: 15,
 });
+
+void watchCameraPermission((state) => session.setPermission(state));
 
 document.addEventListener('visibilitychange', () => session.setPanelHidden(document.hidden));
 session.setPanelHidden(document.hidden);

@@ -35,3 +35,16 @@ export async function cameraPermissionState(): Promise<PermissionProbe> {
     return 'unsupported';
   }
 }
+
+/** Reports the camera permission now and on every change (e.g. granted in the permission tab). */
+export async function watchCameraPermission(
+  onChange: (state: PermissionProbe) => void,
+): Promise<void> {
+  try {
+    const status = await navigator.permissions.query({ name: 'camera' as PermissionName });
+    onChange(status.state);
+    status.addEventListener('change', () => onChange(status.state));
+  } catch {
+    onChange('unsupported');
+  }
+}

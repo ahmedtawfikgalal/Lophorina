@@ -130,6 +130,7 @@ type TrackProcessorCtor = new (init: { track: MediaStreamTrack; maxBufferSize?: 
 class WorkerPipeline implements RecognitionPipeline {
   readonly strategy = 'worker-mstp' as const;
   private worker: Worker | null = null;
+  private rejectStart: ((e: Error) => void) | null = null;
 
   constructor(
     private readonly config: PipelineConfig,
@@ -149,13 +150,17 @@ class WorkerPipeline implements RecognitionPipeline {
     // the worker create the processor.
     const source: WorkerInbound['source'] = Processor
       ? { kind: 'readable', readable: new Processor({ track, maxBufferSize: 1 }).readable }
-      : { kind: 'track', track };
+      : // A clone, so the session keeps (and can stop) the original track.
+        { kind: 'track', track: track.clone() };
 
     return new Promise<void>((resolve, reject) => {
+      this.rejectStart = reject;
       worker.onmessage = (e: MessageEvent<WorkerOutbound>) => {
         const msg = e.data;
-        if (msg.type === 'ready') resolve();
-        else if (msg.type === 'observation')
+        if (msg.type === 'ready') {
+          this.rejectStart = null;
+          resolve();
+        } else if (msg.type === 'observation')
           this.cb.onObservation(msg.observation, msg.inferenceMs, msg.frames);
         else if (msg.type === 'error') {
           reject(new Error(msg.message));
@@ -185,5 +190,8 @@ class WorkerPipeline implements RecognitionPipeline {
     // terminate() releases the recognizer and any VideoFrames the worker still holds.
     this.worker?.terminate();
     this.worker = null;
+    // Settle a start() that is still loading the model, so callers never wait forever.
+    this.rejectStart?.(new Error('Stopped'));
+    this.rejectStart = null;
   }
 }

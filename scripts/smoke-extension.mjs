@@ -79,7 +79,14 @@ try {
     if (m.type() === 'error') consoleErrors.push(m.text());
   });
   page.on('pageerror', (e) => consoleErrors.push(String(e)));
+  // Same first-run flow as a real user: grant the camera once on the permission page.
+  await page.goto(`chrome-extension://${extensionId}/pages/permission/index.html`);
+  await page.getByRole('button', { name: 'Allow camera' }).click();
+  await page.getByText('Camera access granted').waitFor({ timeout: 10_000 });
+  console.log('✓ permission page granted camera access');
+
   await page.goto(`chrome-extension://${extensionId}/pages/control-panel/index.html`);
+  await page.locator('summary', { hasText: 'Diagnostics' }).click();
 
   const strategies = [
     ['worker-mstp', 'Worker + MediaStreamTrackProcessor'],
@@ -112,12 +119,13 @@ try {
     const rate = Number(await read('Observations/s'));
     const latency = await read('Inference P50 / P95');
     const stalls = await read('Stalls');
+    const delegate = await read('Delegate in use');
     await page.getByRole('button', { name: 'Stop Control' }).click();
     const stop = await read('Last stop');
     const ok = rate > 0;
     failed ||= !ok;
     console.log(
-      `${ok ? '✓' : '✗'} ${label}: ${rate} obs/s, inference ${latency}, stalls ${stalls}, stop ${stop} (${runFor}s)`,
+      `${ok ? '✓' : '✗'} ${label} [${delegate}]: ${rate} obs/s, inference ${latency}, stalls ${stalls}, stop ${stop} (${runFor}s)`,
     );
   }
 } catch (e) {
