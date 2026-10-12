@@ -1,6 +1,6 @@
 # ADR-003: Distinguishing intentional gestures from accidental movement
 
-Status: Accepted (thresholds are tuning starting points)
+Status: Accepted. Thresholds fitted to Week 1 recordings (Week 3); retune only with replay evidence
 
 ## Context
 
@@ -8,7 +8,7 @@ A gesture recognized in one frame is an observation, not a command. Accidental c
 
 ## Decision
 
-The `GestureStateMachine` emits at most one intent per deliberate gesture, using:
+The gesture engine emits at most one intent per deliberate gesture, using:
 
 ```mermaid
 flowchart TD
@@ -25,25 +25,31 @@ flowchart TD
   C -- no --> X
 ```
 
-| Rule                           | Initial value                                                                                                                                                                                                                                                                                                                                                                     |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Explicit arming                | Start Control; camera-on and commands-enabled are separate states                                                                                                                                                                                                                                                                                                                 |
-| Static pose confidence         | **Revised after Week 1 recordings:** start at ≥ 0.50 (the classifier's own floor) and rely on stability + stillness. Deliberate palm holds scored a median of 0.53–0.61 and almost never reached 0.80, while brief accidental palms during normal activity did. Confidence alone does not separate intent. Evaluate a landmark-based open-palm check (finger extension) in Week 3 |
-| Palm hold time                 | 800 ms, user-adjustable 500–1500 ms                                                                                                                                                                                                                                                                                                                                               |
-| **Stillness for static pose**  | Palm-center velocity below a threshold for the whole hold; any swipe-like motion resets the hold timer                                                                                                                                                                                                                                                                            |
-| Swipe                          | Horizontal wrist/palm displacement ≥ 25 % of frame width within ≤ 500 ms, dominant horizontal direction (abs(dx) ≥ 2 × abs(dy))                                                                                                                                                                                                                                                   |
-| **Return-stroke suppression**  | After a swipe, ignore opposite-direction motion for 700 ms. **Week 1 data:** return strokes are as fast as swipes (≥ 25 % of frame in < 500 ms) and start 0.6–1.2 s after the swipe begins, so 700 ms from swipe end is borderline. Consider 1,000 ms, or require the hand to come to rest before the next swipe                                                                  |
-| Global cooldown                | 1,000 ms between emitted intents                                                                                                                                                                                                                                                                                                                                                  |
-| Re-arm                         | Same gesture fires again only after release. **Week 1 data:** users often keep the hand in view between holds, so release cannot depend on the hand disappearing. Detect lowering or relaxing (fingertips dropping), a pose change, or loss of tracking                                                                                                                           |
-| **Wind-up suppression**        | **Added after Week 1 data:** people often move the hand quickly the opposite way just before a swipe. A swipe must start from a brief pause, or opposite-direction candidates are held for a short window and discarded if a larger swipe follows                                                                                                                                 |
-| **Direction semantics**        | Left/right defined from the user's perspective; mirroring of the preview handled in one place (`swipe-detector.ts`)                                                                                                                                                                                                                                                               |
-| Tracking loss / low confidence | Reset candidates; never a command                                                                                                                                                                                                                                                                                                                                                 |
-| Multiple hands                 | Use only the highest-confidence hand; show a hint                                                                                                                                                                                                                                                                                                                                 |
+Implemented in `src/interaction/gesture-engine.ts` (Week 3). Values were fitted to the Week 1 recordings and are enforced by `tests/unit/replay.test.ts`.
+
+| Rule                      | Value                                                                                                                                              | Why (from the recordings)                                                                                   |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Explicit arming           | Start Control; camera-on and commands-enabled are separate states                                                                                  |                                                                                                             |
+| Palm score floor          | ≥ 0.50                                                                                                                                             | Deliberate holds scored 0.53–0.61; brief accidental palms reached 0.80, so stillness decides, not the score |
+| Palm hold                 | Palm stays within 0.07 of an anchor point (scaled up for bigger, closer hands) and within 15 % hand-size change for **700 ms**                     | Users push the palm toward the camera and hold briefly; a stricter radius missed most holds                 |
+| Re-arm after a hold       | Hand moves ≥ 0.06 (or changes size ≥ 15 %), or the palm is gone > 250 ms                                                                           | The hand often stays in view between holds                                                                  |
+| Edge margin               | Holds only count with the palm center ≥ 0.1 inside the frame                                                                                       | A hand resting at the frame edge after a swipe looked like a hold                                           |
+| Swipe                     | One continuous horizontal motion (≥ 0.4 frame widths/s) covering ≥ 25 % of the frame, horizontal ≥ 1.5 × vertical, peak ≥ 0.8/s, ≥ 3 frames, ≤ 1 s | Real swipes took 0.4–1.1 s; the earlier 500 ms limit missed them                                            |
+| Return-stroke suppression | Ignore the opposite direction for **1.5 s after the swipe motion ends**                                                                            | Return strokes are sometimes faster than the swipe, so speed cannot tell them apart                         |
+| Tracking jumps            | A step > 0.35 or a gap > 200 ms breaks any motion or hold                                                                                          | Hand switches and re-detections produced one-frame "swipes"                                                 |
+| Wind-up                   | No separate rule needed                                                                                                                            | The apparent wind-ups were tracking jumps, handled above                                                    |
+| Global cooldown           | 1,000 ms between intents                                                                                                                           |                                                                                                             |
+| Direction                 | Raw image x grows toward the user's left; mapped in one place                                                                                      | The frame is not mirrored                                                                                   |
+| Fist                      | Never a command; a fist frame never extends a swipe                                                                                                | Natural fists appeared during normal activity                                                               |
+| Tracking loss             | Resets candidates; never a command                                                                                                                 |                                                                                                             |
+| Multiple hands            | Use the highest-scoring hand; show a hint                                                                                                          |                                                                                                             |
+
+Replay results (Week 3): zero intents in every normal-activity segment; 8 of ~10 palm holds; 9 of ~10 left swipes; all tracked right swipes (7 of 6–8 in the dedicated file); no wrong-direction swipes. In the combined recording most right swipes were not tracked (hand low, partly out of frame), which the hand guide now warns about.
 
 Safe failure: recognizer crash, host disconnect, Stop pressed, or target-tab change → dispatch disabled before any cleanup.
 
 ## Consequences
 
-- The state machine is pure TypeScript with injected time, fully unit-testable.
+- The engine is pure TypeScript that takes time from observation timestamps, so recordings replay exactly.
 - Thresholds are validated with recorded landmark sessions replayed in tests (see `testing/test-plan.md`); changes must be justified by replay results.
 - Accessibility: hold time and swipe distance are adjustable; no gesture assumes a fully extended palm or fast motion is achievable by everyone. Manual controls always remain available.

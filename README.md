@@ -2,7 +2,7 @@
 
 Privacy-first Chrome extension (Manifest V3) for hands-free YouTube control. Hand gestures are recognized on-device with MediaPipe; no video leaves the machine.
 
-**Status:** Week 2 — camera and recognition subsystem (GPU/CPU fallback, permission onboarding, hand guide). Gesture commands are not implemented yet. See [docs/delivery/roadmap.md](docs/delivery/roadmap.md) and the [Week 1 results](docs/delivery/week-1-spike.md).
+**Status:** Week 3 — gesture engine (palm hold, swipes) recognizes gestures and shows them in the panel. Commands are not sent to YouTube yet (Week 4). See [docs/delivery/roadmap.md](docs/delivery/roadmap.md) and the [Week 1 results](docs/delivery/week-1-spike.md).
 
 ## Quick start
 
